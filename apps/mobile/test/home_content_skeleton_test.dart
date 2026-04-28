@@ -4,6 +4,7 @@ import 'package:ccpocket/features/session_list/state/session_list_cubit.dart';
 import 'package:ccpocket/features/session_list/state/session_list_state.dart';
 import 'package:ccpocket/features/session_list/widgets/home_content.dart';
 import 'package:ccpocket/models/messages.dart';
+import 'package:ccpocket/models/offline_pending_action.dart';
 import 'package:ccpocket/l10n/app_localizations.dart';
 import 'package:ccpocket/services/bridge_service.dart';
 import 'package:ccpocket/services/draft_service.dart';
@@ -90,6 +91,7 @@ SessionInfo _runningSession({required String id}) {
 
 Widget _buildHomeContent({
   List<SessionInfo> sessions = const [],
+  List<OfflinePendingAction> offlinePendingActions = const [],
   List<RecentSession> recentSessions = const [],
   bool isInitialLoading = false,
   bool showMacOSNativeAppBanner = false,
@@ -118,6 +120,7 @@ Widget _buildHomeContent({
           child: HomeContent(
             connectionState: BridgeConnectionState.connected,
             sessions: sessions,
+            offlinePendingActions: offlinePendingActions,
             recentSessions: recentSessions,
             accumulatedProjectPaths: const {},
             searchQuery: '',
@@ -300,6 +303,41 @@ void main() {
       // Real recent session visible
       expect(find.text('test prompt for s1'), findsOneWidget);
     });
+
+    testWidgets(
+      'shows pending resume under Running and hides matching Recent',
+      (tester) async {
+        await tester.pumpWidget(
+          _buildHomeContent(
+            offlinePendingActions: [
+              OfflinePendingAction(
+                id: 'pending-resume-s1',
+                kind: OfflinePendingActionKind.resume,
+                projectPath: '/home/user/project-a',
+                provider: 'claude',
+                sessionId: 's1',
+                createdAt: DateTime.utc(2026, 1, 1),
+              ),
+            ],
+            recentSessions: [
+              _session(id: 's1'),
+              _session(id: 's2'),
+            ],
+            isInitialLoading: false,
+            cubit: cubit,
+            draftService: draftService,
+            revenueCatService: revenueCatService,
+            supportBannerService: supportBannerService,
+          ),
+        );
+        await tester.pump();
+
+        expect(find.text('Running'), findsOneWidget);
+        expect(find.text('Resume pending'), findsOneWidget);
+        expect(find.text('test prompt for s1'), findsNothing);
+        expect(find.text('test prompt for s2'), findsOneWidget);
+      },
+    );
 
     testWidgets('shows skeleton while loading even if recent sessions exist', (
       tester,

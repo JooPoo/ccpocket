@@ -1,14 +1,15 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
-import 'dart:typed_data';
 
+import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../core/logger.dart';
 import '../models/messages.dart';
+import '../models/offline_pending_action.dart';
 import 'bridge_service_base.dart';
 import 'session_runtime_store.dart';
 
@@ -38,6 +39,8 @@ class BridgeService implements BridgeServiceBase {
   final _windowListController = StreamController<List<WindowInfo>>.broadcast();
   final _screenshotResultController =
       StreamController<ScreenshotResultMessage>.broadcast();
+  final _offlinePendingActionsController =
+      StreamController<List<OfflinePendingAction>>.broadcast();
   final _debugBundleController =
       StreamController<DebugBundleMessage>.broadcast();
   final _usageController = StreamController<UsageResultMessage>.broadcast();
@@ -95,6 +98,7 @@ class BridgeService implements BridgeServiceBase {
   UsageResultMessage? _lastUsageResult;
   final SessionRuntimeStore _runtimeStore = SessionRuntimeStore();
   final Map<String, int> _pendingHistoryDeltaSinceSeq = {};
+  List<OfflinePendingAction> _offlinePendingActions = const [];
 
   // Diff image cache: survives screen navigation, cleared on session stop.
   // Key: "$projectPath\n$filePath"
@@ -140,6 +144,8 @@ class BridgeService implements BridgeServiceBase {
   Stream<List<WindowInfo>> get windowList => _windowListController.stream;
   Stream<ScreenshotResultMessage> get screenshotResults =>
       _screenshotResultController.stream;
+  Stream<List<OfflinePendingAction>> get offlinePendingActionsStream =>
+      _offlinePendingActionsController.stream;
   Stream<DebugBundleMessage> get debugBundles => _debugBundleController.stream;
   Stream<UsageResultMessage> get usageResults => _usageController.stream;
   Stream<RecordingListMessage> get recordingList =>
@@ -195,6 +201,12 @@ class BridgeService implements BridgeServiceBase {
   String? get defaultCodexProfile => _defaultCodexProfile;
   String? get bridgeVersion => _bridgeVersion;
   UsageResultMessage? get lastUsageResult => _lastUsageResult;
+  List<OfflinePendingAction> get offlinePendingActions =>
+      _offlinePendingActions;
+
+  BridgeService() {
+    unawaited(_ensureOfflineQueueRestored());
+  }
 
   /// The last WebSocket URL used for connection (or reconnection).
   String? get lastUrl => _lastUrl;
@@ -561,8 +573,17 @@ class BridgeService implements BridgeServiceBase {
     if (_channel != null && isConnected) {
       _channel!.sink.add(message.toJson());
     } else {
-      _messageQueue.add(message);
+      final dedupeKey = _offlineMessageDedupeKey(message);
+      final shouldSkip =
+          dedupeKey != null &&
+          _messageQueue.any((queued) {
+            return _offlineMessageDedupeKey(queued) == dedupeKey;
+          });
+      if (!shouldSkip) {
+        _messageQueue.add(message);
+      }
       if (_isPersistableOfflineMessage(message)) {
+        _publishOfflinePendingActions();
         unawaited(_persistOfflinePendingMessages());
       }
     }
@@ -578,6 +599,7 @@ class BridgeService implements BridgeServiceBase {
     final queued = List<ClientMessage>.from(_messageQueue);
     _messageQueue.clear();
     await _persistOfflinePendingMessages();
+    _publishOfflinePendingActions();
     for (final msg in queued) {
       send(msg);
     }
@@ -599,21 +621,119 @@ class BridgeService implements BridgeServiceBase {
     };
   }
 
+  String? _offlineMessageDedupeKey(ClientMessage message) {
+    final json = jsonDecode(message.toJson()) as Map<String, dynamic>;
+    return switch (message.type) {
+      'resume_session' =>
+        'resume:${json['provider'] ?? 'claude'}:${json['sessionId']}',
+      'start' => 'start:${_canonicalJson(json)}',
+      _ => null,
+    };
+  }
+
+  String _offlinePendingActionId(ClientMessage message) {
+    final key =
+        _offlineMessageDedupeKey(message) ??
+        _canonicalJson(jsonDecode(message.toJson()) as Map<String, dynamic>);
+    return base64Url.encode(utf8.encode(key)).replaceAll('=', '');
+  }
+
+  String _canonicalJson(Object? value) {
+    if (value is Map) {
+      final normalized = <String, Object?>{};
+      for (final key in value.keys.map((k) => k.toString()).toList()..sort()) {
+        normalized[key] = _canonicalValue(value[key]);
+      }
+      return jsonEncode(normalized);
+    }
+    return jsonEncode(_canonicalValue(value));
+  }
+
+  Object? _canonicalValue(Object? value) {
+    if (value is Map) {
+      return {
+        for (final key in value.keys.map((k) => k.toString()).toList()..sort())
+          key: _canonicalValue(value[key]),
+      };
+    }
+    if (value is List) {
+      return value.map(_canonicalValue).toList();
+    }
+    return value;
+  }
+
+  OfflinePendingAction? _offlinePendingActionFor(ClientMessage message) {
+    final json = jsonDecode(message.toJson()) as Map<String, dynamic>;
+    final projectPath = json['projectPath'] as String?;
+    if (projectPath == null || projectPath.isEmpty) return null;
+    final provider = json['provider'] as String? ?? Provider.claude.value;
+    final createdAt = DateTime.now();
+    return switch (message.type) {
+      'start' => OfflinePendingAction(
+        id: _offlinePendingActionId(message),
+        kind: OfflinePendingActionKind.start,
+        projectPath: projectPath,
+        provider: provider,
+        createdAt: createdAt,
+      ),
+      'resume_session' => OfflinePendingAction(
+        id: _offlinePendingActionId(message),
+        kind: OfflinePendingActionKind.resume,
+        projectPath: projectPath,
+        provider: provider,
+        createdAt: createdAt,
+        sessionId: json['sessionId'] as String?,
+      ),
+      _ => null,
+    };
+  }
+
+  void _publishOfflinePendingActions() {
+    final actions = <OfflinePendingAction>[];
+    final seen = <String>{};
+    for (final message in _messageQueue) {
+      final action = _offlinePendingActionFor(message);
+      if (action == null || !seen.add(action.id)) continue;
+      actions.add(action);
+    }
+    _offlinePendingActions = List.unmodifiable(actions);
+    _offlinePendingActionsController.add(_offlinePendingActions);
+  }
+
+  Future<void> cancelOfflinePendingAction(String actionId) async {
+    await _ensureOfflineQueueRestored();
+    _messageQueue.removeWhere((message) {
+      final action = _offlinePendingActionFor(message);
+      return action?.id == actionId;
+    });
+    _publishOfflinePendingActions();
+    await _persistOfflinePendingMessages();
+  }
+
   Future<void> _restoreOfflinePendingMessages() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final encoded = prefs.getStringList(_prefKeyOfflinePendingMessages);
       if (encoded == null || encoded.isEmpty) return;
 
-      final existing = _messageQueue.map((message) => message.toJson()).toSet();
+      final existingJson = _messageQueue
+          .map((message) => message.toJson())
+          .toSet();
+      final existingDedupeKeys = _messageQueue
+          .map(_offlineMessageDedupeKey)
+          .whereType<String>()
+          .toSet();
       for (final raw in encoded) {
         try {
           final json = jsonDecode(raw);
           if (json is! Map<String, dynamic>) continue;
           final message = ClientMessage.raw(json);
           if (!_isPersistableOfflineMessage(message)) continue;
-          final key = message.toJson();
-          if (existing.add(key)) {
+          final dedupeKey = _offlineMessageDedupeKey(message);
+          final isDuplicate = dedupeKey != null
+              ? !existingDedupeKeys.add(dedupeKey)
+              : !existingJson.add(message.toJson());
+          if (!isDuplicate) {
             _messageQueue.add(message);
           }
         } catch (error, stackTrace) {
@@ -624,13 +744,23 @@ class BridgeService implements BridgeServiceBase {
           );
         }
       }
+      _publishOfflinePendingActions();
     } catch (error, stackTrace) {
+      if (_isSharedPreferencesUnavailable(error)) {
+        return;
+      }
       logger.warning(
         'Failed to load offline pending messages',
         error,
         stackTrace,
       );
     }
+  }
+
+  bool _isSharedPreferencesUnavailable(Object error) {
+    if (error is MissingPluginException) return true;
+    final message = error.toString();
+    return message.contains('Binding has not yet been initialized');
   }
 
   Future<void> _persistOfflinePendingMessages() async {
@@ -1413,6 +1543,7 @@ class BridgeService implements BridgeServiceBase {
     _worktreeListController.close();
     _windowListController.close();
     _screenshotResultController.close();
+    _offlinePendingActionsController.close();
     _debugBundleController.close();
     _usageController.close();
     _backupResultController.close();

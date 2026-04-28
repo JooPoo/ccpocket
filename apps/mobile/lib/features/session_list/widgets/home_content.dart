@@ -8,12 +8,14 @@ import 'package:skeletonizer/skeletonizer.dart';
 import '../../../constants/app_constants.dart';
 import '../../../l10n/app_localizations.dart';
 import '../../../models/messages.dart';
+import '../../../models/offline_pending_action.dart';
 import '../../../services/app_update_service.dart';
 import '../../../services/draft_service.dart';
 import '../../../services/notification_service.dart';
 import '../../../services/revenuecat_service.dart';
 import '../../../services/support_banner_service.dart';
 import '../../../theme/app_theme.dart';
+import '../../../theme/provider_style.dart';
 import '../../../router/app_router.dart';
 import '../../../widgets/session_card.dart';
 import '../state/session_list_cubit.dart';
@@ -32,6 +34,7 @@ class HomeContent extends StatefulWidget {
   final BridgeConnectionState connectionState;
   final String? bridgeVersion;
   final List<SessionInfo> sessions;
+  final List<OfflinePendingAction> offlinePendingActions;
   final List<RecentSession> recentSessions;
   final Set<String> accumulatedProjectPaths;
   final String searchQuery;
@@ -55,6 +58,7 @@ class HomeContent extends StatefulWidget {
   })
   onTapRunning;
   final ValueChanged<String> onStopSession;
+  final ValueChanged<String>? onCancelOfflinePendingAction;
   final void Function(String sessionId, String toolUseId, {bool clearContext})?
   onApprovePermission;
   final void Function(String sessionId, String toolUseId)? onApproveAlways;
@@ -86,6 +90,7 @@ class HomeContent extends StatefulWidget {
     required this.connectionState,
     this.bridgeVersion,
     required this.sessions,
+    this.offlinePendingActions = const [],
     required this.recentSessions,
     required this.accumulatedProjectPaths,
     required this.searchQuery,
@@ -98,6 +103,7 @@ class HomeContent extends StatefulWidget {
     required this.onNewSession,
     required this.onTapRunning,
     required this.onStopSession,
+    this.onCancelOfflinePendingAction,
     this.onApprovePermission,
     this.onApproveAlways,
     this.onRejectPermission,
@@ -320,7 +326,8 @@ class HomeContentState extends State<HomeContent> {
   Widget _buildContent(BuildContext context) {
     final l = AppLocalizations.of(context);
     final appColors = Theme.of(context).extension<AppColors>()!;
-    final hasRunningSessions = widget.sessions.isNotEmpty;
+    final hasPendingActions = widget.offlinePendingActions.isNotEmpty;
+    final hasRunningSessions = widget.sessions.isNotEmpty || hasPendingActions;
     final hasRecentSessions = widget.recentSessions.isNotEmpty;
     final isReconnecting =
         widget.connectionState == BridgeConnectionState.reconnecting;
@@ -345,9 +352,15 @@ class HomeContentState extends State<HomeContent> {
           (s) => [s.id, if (s.claudeSessionId != null) s.claudeSessionId!],
         )
         .toSet();
+    final pendingResumeSessionIds = widget.offlinePendingActions
+        .where((action) => action.kind == OfflinePendingActionKind.resume)
+        .map((action) => action.sessionId)
+        .whereType<String>()
+        .toSet();
 
     // Fallback for Codex sessions which use a short proxy ID instead of UUID
     bool isDuplicate(RecentSession rs) {
+      if (pendingResumeSessionIds.contains(rs.sessionId)) return true;
       if (runningSessionIds.contains(rs.sessionId)) return true;
       for (final s in widget.sessions) {
         if (s.provider == rs.provider &&
@@ -426,6 +439,14 @@ class HomeContentState extends State<HomeContent> {
             color: appColors.statusOnline,
           ),
           const SizedBox(height: 4),
+          for (final action in widget.offlinePendingActions)
+            OfflinePendingSessionCard(
+              key: ValueKey('pending_session_${action.id}'),
+              action: action,
+              onCancel: widget.onCancelOfflinePendingAction == null
+                  ? null
+                  : () => widget.onCancelOfflinePendingAction!(action.id),
+            ),
           for (final session in widget.sessions)
             Slidable(
               key: ValueKey('running_session_${session.id}'),
@@ -692,6 +713,167 @@ class _RecentSessionsEmptyResult extends StatelessWidget {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class OfflinePendingSessionCard extends StatelessWidget {
+  const OfflinePendingSessionCard({
+    super.key,
+    required this.action,
+    this.onCancel,
+  });
+
+  final OfflinePendingAction action;
+  final VoidCallback? onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final appColors = Theme.of(context).extension<AppColors>()!;
+    final provider = providerFromRaw(action.provider);
+    final providerStyle = providerStyleFor(context, provider);
+    final statusColor = colorScheme.tertiary;
+    final subtitle = switch (action.kind) {
+      OfflinePendingActionKind.start =>
+        'Will create when the bridge reconnects',
+      OfflinePendingActionKind.resume =>
+        'Will resume when the bridge reconnects',
+    };
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 3, horizontal: 0),
+      elevation: 0,
+      color: colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+        side: BorderSide(color: statusColor.withValues(alpha: 0.5), width: 1),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            color: statusColor.withValues(alpha: 0.08),
+            child: Row(
+              children: [
+                SizedBox(
+                  width: 14,
+                  height: 14,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: statusColor,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  'Pending',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: statusColor,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: statusColor.withValues(alpha: 0.82),
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                if (onCancel != null)
+                  IconButton(
+                    key: const ValueKey('pending_session_cancel_button'),
+                    onPressed: onCancel,
+                    tooltip: 'Cancel pending action',
+                    icon: const Icon(Icons.close),
+                    iconSize: 18,
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints.tightFor(
+                      width: 32,
+                      height: 28,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
+                      decoration: BoxDecoration(
+                        color: providerStyle.background,
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: providerStyle.border,
+                          width: 0.5,
+                        ),
+                      ),
+                      child: Text(
+                        action.projectName,
+                        style: TextStyle(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 12,
+                          color: providerStyle.foreground,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  action.title,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_off,
+                      size: 13,
+                      color: appColors.subtleText,
+                    ),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text(
+                        'Queued locally',
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: appColors.subtleText,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

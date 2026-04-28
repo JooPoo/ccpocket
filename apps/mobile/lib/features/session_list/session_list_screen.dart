@@ -12,6 +12,7 @@ import '../../utils/platform_helper.dart';
 
 import '../../models/messages.dart';
 import '../../models/machine.dart';
+import '../../models/offline_pending_action.dart';
 import '../../providers/bridge_cubits.dart';
 import '../../providers/machine_manager_cubit.dart';
 import '../../providers/unseen_sessions_cubit.dart';
@@ -603,6 +604,7 @@ class _SessionListScreenState extends State<SessionListScreen>
 
   void _startNewSession(NewSessionParams result) {
     final bridge = context.read<BridgeService>();
+    final isOffline = !bridge.isConnected;
     final useCodexProfile =
         result.provider == Provider.codex &&
         (result.codexProfile?.isNotEmpty ?? false);
@@ -670,6 +672,12 @@ class _SessionListScreenState extends State<SessionListScreen>
             : null,
       ),
     );
+    if (isOffline) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Session queued for reconnect')),
+      );
+      return;
+    }
     // Navigate immediately to chat with pending state
     final pendingId = 'pending_${DateTime.now().millisecondsSinceEpoch}';
     _pendingNavigation = true;
@@ -1196,6 +1204,13 @@ class _SessionListScreenState extends State<SessionListScreen>
   }
 
   void _resumeSession(RecentSession session) async {
+    final bridge = context.read<BridgeService>();
+    if (_isResumePending(bridge, session)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Resume is already queued')));
+      return;
+    }
     final resumeProjectPath = session.resumeCwd ?? session.projectPath;
     _pendingResumeProjectPath = resumeProjectPath;
     _pendingResumeGitBranch = session.gitBranch;
@@ -1255,7 +1270,7 @@ class _SessionListScreenState extends State<SessionListScreen>
         ? codexDefaults.codexApprovalsReviewer
         : session.codexApprovalsReviewer;
 
-    context.read<BridgeService>().resumeSession(
+    bridge.resumeSession(
       session.sessionId,
       resumeProjectPath,
       permissionMode: isCodex
@@ -1316,6 +1331,11 @@ class _SessionListScreenState extends State<SessionListScreen>
           ? session.codexAdditionalWritableRoots
           : null,
     );
+    if (!bridge.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Resume queued for reconnect')),
+      );
+    }
 
     // Persist settings for this session (so the next resume uses them too).
     if (!isCodex) {
@@ -1354,6 +1374,13 @@ class _SessionListScreenState extends State<SessionListScreen>
     RecentSession session,
     NewSessionParams edited,
   ) {
+    final bridge = context.read<BridgeService>();
+    if (_isResumePending(bridge, session)) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Resume is already queued')));
+      return;
+    }
     final resumeProjectPath = session.resumeCwd ?? session.projectPath;
     _pendingResumeProjectPath = resumeProjectPath;
     _pendingResumeGitBranch = session.gitBranch;
@@ -1361,7 +1388,7 @@ class _SessionListScreenState extends State<SessionListScreen>
     final isCodex = edited.provider == Provider.codex;
     final useCodexProfile =
         isCodex && (edited.codexProfile?.isNotEmpty ?? false);
-    context.read<BridgeService>().resumeSession(
+    bridge.resumeSession(
       session.sessionId,
       resumeProjectPath,
       permissionMode: isCodex && useCodexProfile
@@ -1408,6 +1435,11 @@ class _SessionListScreenState extends State<SessionListScreen>
           : (isCodex ? edited.webSearchMode?.value : null),
       additionalWritableRoots: isCodex ? edited.additionalWritableRoots : null,
     );
+    if (!bridge.isConnected) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Resume queued for reconnect')),
+      );
+    }
 
     // Persist per-session Claude settings for future resumes.
     if (!isCodex) {
@@ -1420,6 +1452,15 @@ class _SessionListScreenState extends State<SessionListScreen>
     } else {
       unawaited(_saveProjectCodexProfileFromParams(edited));
     }
+  }
+
+  bool _isResumePending(BridgeService bridge, RecentSession session) {
+    final provider = session.provider ?? Provider.claude.value;
+    return bridge.offlinePendingActions.any((action) {
+      return action.kind == OfflinePendingActionKind.resume &&
+          action.sessionId == session.sessionId &&
+          action.provider == provider;
+    });
   }
 
   void _stopSession(String sessionId) {
@@ -1629,104 +1670,114 @@ class _SessionListScreenState extends State<SessionListScreen>
     }
 
     if (showConnectedUI) {
-      final content = RefreshIndicator(
-        onRefresh: () async => _refresh(),
-        child: HomeContent(
-          key: _homeContentKey,
-          connectionState: connectionState,
-          bridgeVersion: context.read<BridgeService>().bridgeVersion,
-          sessions: sessions,
-          recentSessions: recentSessionsList,
-          accumulatedProjectPaths: slState.accumulatedProjectPaths,
-          searchQuery: slState.searchQuery,
-          isLoadingMore: slState.isLoadingMore,
-          isInitialLoading: slState.isInitialLoading,
-          hasMoreSessions: slState.hasMore,
-          archivingSessionIds: _archivingSessionIds,
-          unseenSessionIds: unseenSessionIds,
-          currentProjectFilter: context
-              .read<BridgeService>()
-              .currentProjectFilter,
-          onNewSession: _showNewSessionDialog,
-          onTapRunning:
-              (
-                sessionId, {
-                String? projectPath,
-                String? gitBranch,
-                String? worktreePath,
-                String? provider,
-                String? permissionMode,
-                String? sandboxMode,
-                String? approvalPolicy,
-                String? approvalsReviewer,
-              }) => _navigateToChat(
-                sessionId,
-                projectPath: projectPath,
-                gitBranch: gitBranch,
-                worktreePath: worktreePath,
-                provider: provider == 'codex' ? Provider.codex : null,
-                permissionMode: permissionMode,
-                sandboxMode: sandboxMode,
-                approvalPolicy: approvalPolicy,
-                approvalsReviewer: approvalsReviewer,
-              ),
-          onStopSession: _stopSession,
-          onApprovePermission:
-              (sessionId, toolUseId, {bool clearContext = false}) {
+      final bridge = context.read<BridgeService>();
+      final content = StreamBuilder<List<OfflinePendingAction>>(
+        stream: bridge.offlinePendingActionsStream,
+        initialData: bridge.offlinePendingActions,
+        builder: (context, snapshot) {
+          final offlinePendingActions =
+              snapshot.data ?? const <OfflinePendingAction>[];
+          return RefreshIndicator(
+            onRefresh: () async => _refresh(),
+            child: HomeContent(
+              key: _homeContentKey,
+              connectionState: connectionState,
+              bridgeVersion: bridge.bridgeVersion,
+              sessions: sessions,
+              offlinePendingActions: offlinePendingActions,
+              recentSessions: recentSessionsList,
+              accumulatedProjectPaths: slState.accumulatedProjectPaths,
+              searchQuery: slState.searchQuery,
+              isLoadingMore: slState.isLoadingMore,
+              isInitialLoading: slState.isInitialLoading,
+              hasMoreSessions: slState.hasMore,
+              archivingSessionIds: _archivingSessionIds,
+              unseenSessionIds: unseenSessionIds,
+              currentProjectFilter: bridge.currentProjectFilter,
+              onNewSession: _showNewSessionDialog,
+              onTapRunning:
+                  (
+                    sessionId, {
+                    String? projectPath,
+                    String? gitBranch,
+                    String? worktreePath,
+                    String? provider,
+                    String? permissionMode,
+                    String? sandboxMode,
+                    String? approvalPolicy,
+                    String? approvalsReviewer,
+                  }) => _navigateToChat(
+                    sessionId,
+                    projectPath: projectPath,
+                    gitBranch: gitBranch,
+                    worktreePath: worktreePath,
+                    provider: provider == 'codex' ? Provider.codex : null,
+                    permissionMode: permissionMode,
+                    sandboxMode: sandboxMode,
+                    approvalPolicy: approvalPolicy,
+                    approvalsReviewer: approvalsReviewer,
+                  ),
+              onStopSession: _stopSession,
+              onCancelOfflinePendingAction: (actionId) =>
+                  unawaited(bridge.cancelOfflinePendingAction(actionId)),
+              onApprovePermission:
+                  (sessionId, toolUseId, {bool clearContext = false}) {
+                    final bridge = context.read<BridgeService>();
+                    bridge.send(
+                      ClientMessage.approve(
+                        toolUseId,
+                        sessionId: sessionId,
+                        clearContext: clearContext,
+                      ),
+                    );
+                    bridge.clearSessionPermission(sessionId);
+                  },
+              onApproveAlways: (sessionId, toolUseId) {
                 final bridge = context.read<BridgeService>();
                 bridge.send(
-                  ClientMessage.approve(
+                  ClientMessage.approveAlways(toolUseId, sessionId: sessionId),
+                );
+                bridge.clearSessionPermission(sessionId);
+              },
+              onRejectPermission: (sessionId, toolUseId, {message}) {
+                final bridge = context.read<BridgeService>();
+                bridge.send(
+                  ClientMessage.reject(
                     toolUseId,
+                    message: message,
                     sessionId: sessionId,
-                    clearContext: clearContext,
                   ),
                 );
                 bridge.clearSessionPermission(sessionId);
               },
-          onApproveAlways: (sessionId, toolUseId) {
-            final bridge = context.read<BridgeService>();
-            bridge.send(
-              ClientMessage.approveAlways(toolUseId, sessionId: sessionId),
-            );
-            bridge.clearSessionPermission(sessionId);
-          },
-          onRejectPermission: (sessionId, toolUseId, {message}) {
-            final bridge = context.read<BridgeService>();
-            bridge.send(
-              ClientMessage.reject(
-                toolUseId,
-                message: message,
-                sessionId: sessionId,
-              ),
-            );
-            bridge.clearSessionPermission(sessionId);
-          },
-          onAnswerQuestion: (sessionId, toolUseId, result) {
-            final bridge = context.read<BridgeService>();
-            bridge.send(
-              ClientMessage.answer(toolUseId, result, sessionId: sessionId),
-            );
-            bridge.clearSessionPermission(sessionId);
-          },
-          onResumeSession: _resumeSession,
-          onLongPressRecentSession: _showRecentSessionActions,
-          onArchiveSession: _archiveSession,
-          onLongPressRunningSession: _showRunningSessionActions,
-          onSelectProject: (path) =>
-              context.read<SessionListCubit>().selectProject(path),
-          onLoadMore: () => context.read<SessionListCubit>().loadMore(),
-          providerFilter: slState.providerFilter,
-          namedOnly: slState.namedOnly,
-          onToggleProvider: () =>
-              context.read<SessionListCubit>().toggleProviderFilter(),
-          onToggleNamed: () =>
-              context.read<SessionListCubit>().toggleNamedOnly(),
-          appUpdateInfo: _appUpdateInfo,
-          onDismissAppUpdate: _dismissAppUpdate,
-          showMacOSNativeAppBanner: _showMacOSNativeAppBanner,
-          onDismissMacOSNativeAppBanner: _dismissMacOSNativeAppBanner,
-          onOpenSupportSettings: _openSupportSettings,
-        ),
+              onAnswerQuestion: (sessionId, toolUseId, result) {
+                final bridge = context.read<BridgeService>();
+                bridge.send(
+                  ClientMessage.answer(toolUseId, result, sessionId: sessionId),
+                );
+                bridge.clearSessionPermission(sessionId);
+              },
+              onResumeSession: _resumeSession,
+              onLongPressRecentSession: _showRecentSessionActions,
+              onArchiveSession: _archiveSession,
+              onLongPressRunningSession: _showRunningSessionActions,
+              onSelectProject: (path) =>
+                  context.read<SessionListCubit>().selectProject(path),
+              onLoadMore: () => context.read<SessionListCubit>().loadMore(),
+              providerFilter: slState.providerFilter,
+              namedOnly: slState.namedOnly,
+              onToggleProvider: () =>
+                  context.read<SessionListCubit>().toggleProviderFilter(),
+              onToggleNamed: () =>
+                  context.read<SessionListCubit>().toggleNamedOnly(),
+              appUpdateInfo: _appUpdateInfo,
+              onDismissAppUpdate: _dismissAppUpdate,
+              showMacOSNativeAppBanner: _showMacOSNativeAppBanner,
+              onDismissMacOSNativeAppBanner: _dismissMacOSNativeAppBanner,
+              onOpenSupportSettings: _openSupportSettings,
+            ),
+          );
+        },
       );
 
       if (widget.embedded) {

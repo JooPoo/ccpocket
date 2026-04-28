@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:ccpocket/models/messages.dart';
+import 'package:ccpocket/models/offline_pending_action.dart';
 import 'package:ccpocket/services/bridge_service.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -214,6 +215,76 @@ void main() {
           'clientMessageId': 'cm-1',
           'baseSeq': 4,
         });
+
+        bridge.dispose();
+      },
+    );
+
+    test(
+      'publishes offline pending start and resume actions with dedupe',
+      () async {
+        final bridge = BridgeService();
+        await pumpEventQueue();
+
+        bridge.send(ClientMessage.start('/home/user/app', provider: 'codex'));
+        bridge.send(ClientMessage.start('/home/user/app', provider: 'codex'));
+        bridge.send(
+          ClientMessage.resumeSession(
+            'session-1',
+            '/home/user/app',
+            provider: 'claude',
+          ),
+        );
+        bridge.send(
+          ClientMessage.resumeSession(
+            'session-1',
+            '/home/user/app',
+            provider: 'claude',
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(bridge.offlinePendingActions, hasLength(2));
+        expect(
+          bridge.offlinePendingActions.map((action) => action.kind),
+          containsAll([
+            OfflinePendingActionKind.start,
+            OfflinePendingActionKind.resume,
+          ]),
+        );
+
+        final prefs = await SharedPreferences.getInstance();
+        final raw = prefs.getStringList('bridge_offline_pending_messages_v1');
+        expect(raw, hasLength(2));
+
+        bridge.dispose();
+      },
+    );
+
+    test(
+      'cancelOfflinePendingAction removes queued action and persistence',
+      () async {
+        final bridge = BridgeService();
+        await pumpEventQueue();
+
+        bridge.send(
+          ClientMessage.resumeSession(
+            'session-1',
+            '/home/user/app',
+            provider: 'claude',
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        final actionId = bridge.offlinePendingActions.single.id;
+        await bridge.cancelOfflinePendingAction(actionId);
+
+        expect(bridge.offlinePendingActions, isEmpty);
+        final prefs = await SharedPreferences.getInstance();
+        expect(
+          prefs.getStringList('bridge_offline_pending_messages_v1'),
+          isNull,
+        );
 
         bridge.dispose();
       },
