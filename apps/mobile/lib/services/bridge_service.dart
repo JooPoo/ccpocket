@@ -102,6 +102,8 @@ class BridgeService implements BridgeServiceBase {
   final Map<String, ClientMessage> _inFlightInputMessages = {};
   final Map<String, Timer> _inFlightPendingVisibilityTimers = {};
   final Set<String> _visibleInFlightPendingKeys = {};
+  final Map<String, _DeliveryPendingInputState> _deliveryPendingInputs = {};
+  final Map<String, Timer> _deliveryPendingVisibilityTimers = {};
   List<OfflinePendingAction> _offlinePendingActions = const [];
 
   // Diff image cache: survives screen navigation, cleared on session stop.
@@ -215,6 +217,50 @@ class BridgeService implements BridgeServiceBase {
   /// The last WebSocket URL used for connection (or reconnection).
   String? get lastUrl => _lastUrl;
 
+  QueuedInputItem? deliveryPendingInputForSession(String sessionId) {
+    final pending = _deliveryPendingInputs[sessionId];
+    if (pending == null || !pending.visible) return null;
+    return pending.item;
+  }
+
+  void setDeliveryPendingInput(
+    String sessionId,
+    QueuedInputItem item, {
+    Duration visibleAfter = Duration.zero,
+  }) {
+    _deliveryPendingVisibilityTimers.remove(sessionId)?.cancel();
+    _deliveryPendingInputs[sessionId] = _DeliveryPendingInputState(item);
+    if (visibleAfter == Duration.zero || visibleAfter.isNegative) {
+      showDeliveryPendingInput(sessionId, itemId: item.itemId);
+      return;
+    }
+    _deliveryPendingVisibilityTimers[sessionId] = Timer(visibleAfter, () {
+      _deliveryPendingVisibilityTimers.remove(sessionId);
+      showDeliveryPendingInput(sessionId, itemId: item.itemId);
+    });
+  }
+
+  void showDeliveryPendingInput(String sessionId, {required String itemId}) {
+    final pending = _deliveryPendingInputs[sessionId];
+    if (pending == null || pending.item.itemId != itemId) return;
+    if (pending.visible) return;
+    pending.visible = true;
+    _patchSessionQueuedInput(sessionId, pending.item);
+  }
+
+  void clearDeliveryPendingInput(String sessionId, {String? itemId}) {
+    final pending = _deliveryPendingInputs[sessionId];
+    if (pending == null) return;
+    if (itemId != null && pending.item.itemId != itemId) return;
+    _deliveryPendingVisibilityTimers.remove(sessionId)?.cancel();
+    _deliveryPendingInputs.remove(sessionId);
+    final idx = _sessions.indexWhere((session) => session.id == sessionId);
+    if (idx < 0) return;
+    if (_sessions[idx].queuedInput?.itemId == pending.item.itemId) {
+      _patchSessionQueuedInput(sessionId, null);
+    }
+  }
+
   /// Derive HTTP base URL from the WebSocket URL.
   /// Example: ws://host:8765/path?query=1 -> http://host:8765
   @override
@@ -283,6 +329,7 @@ class BridgeService implements BridgeServiceBase {
                     (msg is InputAckMessage ? msg.acceptedSeq : null),
               );
             }
+            _clearDeliveredDeliveryPendingInput(msg, sessionId: sessionId);
             _clearDeliveredInFlightInput(msg, sessionId: sessionId);
             switch (msg) {
               case SessionListMessage(
@@ -294,7 +341,7 @@ class BridgeService implements BridgeServiceBase {
                 :final defaultCodexProfile,
                 :final bridgeVersion,
               ):
-                _sessions = sessions;
+                _sessions = _applyLocalDeliveryPendingInputs(sessions);
                 _sessionListController.add(_sessions);
                 _allowedDirs = allowedDirs;
                 _claudeModels = claudeModels;
@@ -671,6 +718,31 @@ class BridgeService implements BridgeServiceBase {
 
   void _clearInFlightInputMessage(String dedupeKey) {
     _inFlightInputMessages.remove(dedupeKey);
+  }
+
+  void _clearDeliveredDeliveryPendingInput(
+    ServerMessage message, {
+    required String? sessionId,
+  }) {
+    if (sessionId == null) return;
+    switch (message) {
+      case InputAckMessage(:final clientMessageId, :final queued):
+        if (clientMessageId == null || queued) return;
+        clearDeliveryPendingInput(
+          sessionId,
+          itemId: 'pending:$clientMessageId',
+        );
+      case InputRejectedMessage(:final clientMessageId):
+        if (clientMessageId == null) return;
+        clearDeliveryPendingInput(
+          sessionId,
+          itemId: 'pending:$clientMessageId',
+        );
+      case AssistantServerMessage():
+        clearDeliveryPendingInput(sessionId);
+      default:
+        return;
+    }
   }
 
   void _clearDeliveredInFlightInput(
@@ -1581,6 +1653,16 @@ class BridgeService implements BridgeServiceBase {
     _sessionListController.add(_sessions);
   }
 
+  List<SessionInfo> _applyLocalDeliveryPendingInputs(
+    List<SessionInfo> sessions,
+  ) {
+    return sessions.map((session) {
+      final pending = deliveryPendingInputForSession(session.id);
+      if (pending == null) return session;
+      return session.copyWith(queuedInput: pending);
+    }).toList();
+  }
+
   void patchSessionPermissionMode(String sessionId, String permissionMode) {
     _patchSessionPermissionMode(sessionId, permissionMode);
   }
@@ -1789,6 +1871,11 @@ class BridgeService implements BridgeServiceBase {
       timer.cancel();
     }
     _inFlightPendingVisibilityTimers.clear();
+    for (final timer in _deliveryPendingVisibilityTimers.values) {
+      timer.cancel();
+    }
+    _deliveryPendingVisibilityTimers.clear();
+    _deliveryPendingInputs.clear();
     _inFlightInputMessages.clear();
     _channelSub?.cancel();
     _channelSub = null;
@@ -1830,6 +1917,13 @@ class BridgeService implements BridgeServiceBase {
     _gitRemoteStatusResultController.close();
     clearDiffImageCache();
   }
+}
+
+class _DeliveryPendingInputState {
+  _DeliveryPendingInputState(this.item);
+
+  final QueuedInputItem item;
+  bool visible = false;
 }
 
 /// Cached diff image data for a single file.

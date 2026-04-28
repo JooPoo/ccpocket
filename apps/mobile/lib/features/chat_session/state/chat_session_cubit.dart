@@ -125,6 +125,7 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
     _subscription = _bridge.messagesForSession(sessionId).listen(_onMessage);
 
     _restoreCachedRuntimeMessages();
+    _restoreDeliveryPendingInput();
 
     // Request in-memory history from the bridge server
     _bridge.requestSessionHistory(sessionId);
@@ -166,6 +167,13 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
         st,
       );
     }
+  }
+
+  void _restoreDeliveryPendingInput() {
+    if (!isCodex || state.queuedInput != null) return;
+    final item = _bridge.deliveryPendingInputForSession(sessionId);
+    if (item == null) return;
+    emit(state.copyWith(queuedInput: item));
   }
 
   void _onMessage(ServerMessage msg) {
@@ -474,8 +482,7 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
       hiddenToolUseIds = {...hiddenToolUseIds, ...update.toolUseIdsToHide};
     }
 
-    final nextEntries = didModifyEntries ? entries : current.entries;
-    final usage = _calculateUsageTotals(nextEntries);
+    var nextEntries = didModifyEntries ? entries : current.entries;
 
     // --- Apply state update ---
     final newClaudeSessionId =
@@ -485,23 +492,37 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
             InputRejectedMessage(:final clientMessageId)
         when clientMessageId != null) {
       _deliveryPendingTimers.remove(clientMessageId)?.cancel();
+      _bridge.clearDeliveryPendingInput(
+        sessionId,
+        itemId: '$deliveryPendingQueuedInputPrefix$clientMessageId',
+      );
     } else if (update.markUserMessagesSent) {
       for (final timer in _deliveryPendingTimers.values) {
         timer.cancel();
       }
       _deliveryPendingTimers.clear();
+      _bridge.clearDeliveryPendingInput(sessionId);
     }
 
     var nextQueuedInput = update.clearQueuedInput
         ? null
         : (update.queuedInput ?? current.queuedInput);
-    if (originalMsg is InputAckMessage &&
-        originalMsg.queued == false &&
-        (offlineQueuedClientMessageId(nextQueuedInput) ==
-                originalMsg.clientMessageId ||
-            deliveryPendingClientMessageId(nextQueuedInput) ==
-                originalMsg.clientMessageId)) {
-      nextQueuedInput = null;
+    QueuedInputItem? deliveredPendingInput;
+    String? deliveredPendingClientMessageId;
+    if (originalMsg is InputAckMessage && originalMsg.queued == false) {
+      final offlineMatch =
+          offlineQueuedClientMessageId(nextQueuedInput) ==
+          originalMsg.clientMessageId;
+      final deliveryMatch =
+          deliveryPendingClientMessageId(nextQueuedInput) ==
+          originalMsg.clientMessageId;
+      if (deliveryMatch) {
+        deliveredPendingInput = nextQueuedInput;
+        deliveredPendingClientMessageId = originalMsg.clientMessageId;
+      }
+      if (offlineMatch || deliveryMatch) {
+        nextQueuedInput = null;
+      }
     }
     if (originalMsg is InputRejectedMessage &&
         deliveryPendingClientMessageId(nextQueuedInput) ==
@@ -511,8 +532,28 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
     if (originalMsg is! InputAckMessage &&
         update.markUserMessagesSent &&
         isDeliveryPendingQueuedInput(nextQueuedInput)) {
+      deliveredPendingInput = nextQueuedInput;
+      deliveredPendingClientMessageId = deliveryPendingClientMessageId(
+        nextQueuedInput,
+      );
       nextQueuedInput = null;
     }
+    if (deliveredPendingInput != null) {
+      nextEntries = _appendDeliveredPendingInputEntry(
+        nextEntries,
+        deliveredPendingInput,
+        deliveredPendingClientMessageId,
+        beforeTrailingAssistant: originalMsg is AssistantServerMessage,
+      );
+    }
+    if (isDeliveryPendingQueuedInput(current.queuedInput) &&
+        current.queuedInput?.itemId != nextQueuedInput?.itemId) {
+      _bridge.clearDeliveryPendingInput(
+        sessionId,
+        itemId: current.queuedInput!.itemId,
+      );
+    }
+    final usage = _calculateUsageTotals(nextEntries);
 
     emit(
       current.copyWith(
@@ -579,6 +620,37 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
           ? Duration(milliseconds: durationMs.round())
           : null,
     );
+  }
+
+  List<ChatEntry> _appendDeliveredPendingInputEntry(
+    List<ChatEntry> entries,
+    QueuedInputItem? item,
+    String? clientMessageId, {
+    bool beforeTrailingAssistant = false,
+  }) {
+    if (item == null) return entries;
+    final alreadyVisible = entries.any((entry) {
+      if (entry is! UserChatEntry) return false;
+      if (clientMessageId != null && entry.clientMessageId == clientMessageId) {
+        return true;
+      }
+      return entry.text == item.text && entry.status == MessageStatus.sent;
+    });
+    if (alreadyVisible) return entries;
+    final entry = UserChatEntry(
+      item.text,
+      sessionId: sessionId,
+      clientMessageId: clientMessageId,
+      imageCount: item.imageCount,
+      status: MessageStatus.sent,
+    );
+    final trailingEntry = entries.lastOrNull;
+    if (beforeTrailingAssistant &&
+        trailingEntry is ServerChatEntry &&
+        trailingEntry.message is AssistantServerMessage) {
+      return [...entries.take(entries.length - 1), entry, entries.last];
+    }
+    return [...entries, entry];
   }
 
   // ---------------------------------------------------------------------------
@@ -673,6 +745,24 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
           .toList();
     }
 
+    final deliveryPendingItem = isCodex && !isOffline
+        ? QueuedInputItem(
+            itemId: '$deliveryPendingQueuedInputPrefix$clientMessageId',
+            text: text,
+            createdAt: DateTime.now().toUtc().toIso8601String(),
+            imageCount: images?.length ?? 0,
+            skills: structuredMentions.skills,
+            mentions: structuredMentions.mentions,
+          )
+        : null;
+    if (deliveryPendingItem != null) {
+      _bridge.setDeliveryPendingInput(
+        sessionId,
+        deliveryPendingItem,
+        visibleAfter: _deliveryPendingDelay,
+      );
+    }
+
     _bridge.send(
       ClientMessage.input(
         text,
@@ -690,25 +780,20 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
     if (isCodex && !isOffline) {
       _scheduleDeliveryPendingQueue(
         clientMessageId: clientMessageId,
-        text: text,
-        imageCount: images?.length ?? 0,
-        skills: structuredMentions.skills,
-        mentions: structuredMentions.mentions,
+        item: deliveryPendingItem!,
       );
     }
   }
 
   void _scheduleDeliveryPendingQueue({
     required String clientMessageId,
-    required String text,
-    required int imageCount,
-    required List<Map<String, String>> skills,
-    required List<Map<String, String>> mentions,
+    required QueuedInputItem item,
   }) {
     _deliveryPendingTimers[clientMessageId]?.cancel();
     _deliveryPendingTimers[clientMessageId] = Timer(_deliveryPendingDelay, () {
       _deliveryPendingTimers.remove(clientMessageId);
       if (isClosed || state.queuedInput != null) return;
+      _bridge.showDeliveryPendingInput(sessionId, itemId: item.itemId);
 
       final entries = state.entries;
       final entryIndex = entries.indexWhere(
@@ -720,19 +805,7 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
       final nextEntries = entryIndex == -1
           ? entries
           : [...entries.take(entryIndex), ...entries.skip(entryIndex + 1)];
-      emit(
-        state.copyWith(
-          entries: nextEntries,
-          queuedInput: QueuedInputItem(
-            itemId: '$deliveryPendingQueuedInputPrefix$clientMessageId',
-            text: text,
-            createdAt: DateTime.now().toUtc().toIso8601String(),
-            imageCount: imageCount,
-            skills: skills,
-            mentions: mentions,
-          ),
-        ),
-      );
+      emit(state.copyWith(entries: nextEntries, queuedInput: item));
     });
   }
 
@@ -788,6 +861,7 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
   void cancelQueuedInput(QueuedInputItem item) {
     if (!isCodex) return;
     if (isDeliveryPendingQueuedInput(item)) {
+      _bridge.clearDeliveryPendingInput(sessionId, itemId: item.itemId);
       if (state.queuedInput?.itemId == item.itemId) {
         emit(state.copyWith(queuedInput: null));
       }

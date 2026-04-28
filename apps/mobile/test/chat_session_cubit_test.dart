@@ -418,6 +418,10 @@ void main() {
         await Future.microtask(() {});
 
         expect(cubit.state.queuedInput, isNull);
+        users = cubit.state.entries.whereType<UserChatEntry>().toList();
+        expect(users, hasLength(1));
+        expect(users.single.text, 'Slow online Codex input');
+        expect(users.single.status, MessageStatus.sent);
       },
     );
 
@@ -488,6 +492,10 @@ void main() {
         await Future.microtask(() {});
 
         expect(cubit.state.queuedInput, isNull);
+        final users = cubit.state.entries.whereType<UserChatEntry>().toList();
+        expect(users, hasLength(1));
+        expect(users.single.text, 'Ack-less online Codex input');
+        expect(users.single.status, MessageStatus.sent);
       },
     );
 
@@ -511,6 +519,79 @@ void main() {
       expect(cubit.state.queuedInput, isNull);
       expect(mockBridge.sentMessages, hasLength(1));
     });
+
+    test(
+      'codex delivery pending input survives session cubit recreation',
+      () async {
+        final cubit = createCubit('s1', provider: Provider.codex);
+        mockBridge.emitMessage(
+          const StatusMessage(status: ProcessStatus.idle),
+          sessionId: 's1',
+        );
+        await Future.microtask(() {});
+
+        cubit.sendMessage('Recreate delivery pending');
+        await cubit.close();
+
+        await Future<void>.delayed(const Duration(milliseconds: 650));
+
+        final restored = createCubit('s1', provider: Provider.codex);
+        addTearDown(restored.close);
+        await Future.microtask(() {});
+
+        expect(restored.state.queuedInput?.text, 'Recreate delivery pending');
+        expect(
+          ChatSessionCubit.isDeliveryPendingQueuedInput(
+            restored.state.queuedInput,
+          ),
+          isTrue,
+        );
+
+        final payload =
+            jsonDecode(mockBridge.sentMessages.single.toJson())
+                as Map<String, dynamic>;
+        mockBridge.emitMessage(
+          InputAckMessage(
+            sessionId: 's1',
+            clientMessageId: payload['clientMessageId'] as String,
+          ),
+          sessionId: 's1',
+        );
+        await Future.microtask(() {});
+
+        expect(restored.state.queuedInput, isNull);
+        final users = restored.state.entries
+            .whereType<UserChatEntry>()
+            .toList();
+        expect(users, hasLength(1));
+        expect(users.single.text, 'Recreate delivery pending');
+        expect(users.single.status, MessageStatus.sent);
+      },
+    );
+
+    test(
+      'canceling delivery pending input clears restored pending state',
+      () async {
+        final cubit = createCubit('s1', provider: Provider.codex);
+        mockBridge.emitMessage(
+          const StatusMessage(status: ProcessStatus.idle),
+          sessionId: 's1',
+        );
+        await Future.microtask(() {});
+
+        cubit.sendMessage('Cancel restored delivery pending');
+        await Future<void>.delayed(const Duration(milliseconds: 650));
+
+        cubit.cancelQueuedInput(cubit.state.queuedInput!);
+        await cubit.close();
+
+        final restored = createCubit('s1', provider: Provider.codex);
+        addTearDown(restored.close);
+        await Future.microtask(() {});
+
+        expect(restored.state.queuedInput, isNull);
+      },
+    );
 
     test(
       'codex sendMessage includes structured skills and app mentions',

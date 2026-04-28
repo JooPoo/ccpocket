@@ -158,6 +158,61 @@ void main() {
       },
     );
 
+    test('session list preserves visible delivery pending input', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final socketReady = Completer<WebSocket>();
+
+      server.transform(WebSocketTransformer()).listen((socket) {
+        socketReady.complete(socket);
+      });
+
+      final bridge = BridgeService();
+      bridge.setDeliveryPendingInput(
+        's1',
+        const QueuedInputItem(
+          itemId: 'pending:cm-1',
+          text: 'Pending delivery',
+          createdAt: '2026-04-28T00:00:00.000Z',
+        ),
+      );
+      bridge.connect('ws://127.0.0.1:${server.port}');
+
+      final socket = await socketReady.future;
+      socket.add(
+        jsonEncode({
+          'type': 'session_list',
+          'sessions': [
+            {
+              'id': 's1',
+              'provider': 'codex',
+              'projectPath': '/tmp/project',
+              'status': 'running',
+            },
+          ],
+        }),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bridge.sessions.single.queuedInput?.itemId, 'pending:cm-1');
+      expect(bridge.sessions.single.queuedInput?.text, 'Pending delivery');
+
+      socket.add(
+        jsonEncode({
+          'type': 'input_ack',
+          'sessionId': 's1',
+          'clientMessageId': 'cm-1',
+        }),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bridge.sessions.single.queuedInput, isNull);
+
+      bridge.disconnect();
+      await socket.close();
+      await server.close(force: true);
+      bridge.dispose();
+    });
+
     test('input_ack acceptedSeq advances cached history sequence', () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       final socketReady = Completer<WebSocket>();
