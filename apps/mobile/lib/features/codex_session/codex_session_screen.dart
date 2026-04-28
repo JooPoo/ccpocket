@@ -1149,26 +1149,16 @@ class _CodexChatBody extends HookWidget {
                           : () => context
                                 .read<ChatSessionCubit>()
                                 .steerQueuedInput(queuedInput),
-                      onEdit:
-                          ChatSessionCubit.isDeliveryPendingQueuedInput(
-                            queuedInput,
-                          )
-                          ? null
-                          : () => moveQueuedInputToComposer(
-                              inputController: chatInputController,
-                              item: queuedInput,
-                              cancelQueuedInput: () => context
-                                  .read<ChatSessionCubit>()
-                                  .cancelQueuedInput(queuedInput),
-                            ),
-                      onCancel:
-                          ChatSessionCubit.isDeliveryPendingQueuedInput(
-                            queuedInput,
-                          )
-                          ? null
-                          : () => context
-                                .read<ChatSessionCubit>()
-                                .cancelQueuedInput(queuedInput),
+                      onEdit: () => moveQueuedInputToComposer(
+                        inputController: chatInputController,
+                        item: queuedInput,
+                        cancelQueuedInput: () => context
+                            .read<ChatSessionCubit>()
+                            .cancelQueuedInput(queuedInput),
+                      ),
+                      onCancel: () => context
+                          .read<ChatSessionCubit>()
+                          .cancelQueuedInput(queuedInput),
                     ),
                 if (approval is ApprovalNone)
                   ChatInputWithOverlays(
@@ -1535,12 +1525,13 @@ class CodexQueuedInputPanel extends StatelessWidget {
                   ],
                 ),
               ),
-              IconButton(
-                key: const ValueKey('codex_queue_steer_button'),
-                tooltip: 'Steer queued message',
-                icon: const Icon(Icons.subdirectory_arrow_left, size: 20),
-                onPressed: onSteer,
-              ),
+              if (!isDeliveryPending)
+                IconButton(
+                  key: const ValueKey('codex_queue_steer_button'),
+                  tooltip: 'Steer queued message',
+                  icon: const Icon(Icons.subdirectory_arrow_left, size: 20),
+                  onPressed: onSteer,
+                ),
               IconButton(
                 key: const ValueKey('codex_queue_edit_button'),
                 tooltip: 'Move queued message to input',

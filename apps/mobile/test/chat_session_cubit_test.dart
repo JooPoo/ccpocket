@@ -491,6 +491,27 @@ void main() {
       },
     );
 
+    test('codex delivery pending input can be locally dismissed', () async {
+      final cubit = createCubit('s1', provider: Provider.codex);
+      addTearDown(cubit.close);
+      mockBridge.emitMessage(
+        const StatusMessage(status: ProcessStatus.idle),
+        sessionId: 's1',
+      );
+      await Future.microtask(() {});
+
+      cubit.sendMessage('Dismiss delivery pending');
+      await Future<void>.delayed(const Duration(milliseconds: 650));
+
+      final item = cubit.state.queuedInput!;
+      expect(ChatSessionCubit.isDeliveryPendingQueuedInput(item), isTrue);
+
+      cubit.cancelQueuedInput(item);
+
+      expect(cubit.state.queuedInput, isNull);
+      expect(mockBridge.sentMessages, hasLength(1));
+    });
+
     test(
       'codex sendMessage includes structured skills and app mentions',
       () async {

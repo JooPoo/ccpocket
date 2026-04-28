@@ -787,7 +787,12 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
 
   void cancelQueuedInput(QueuedInputItem item) {
     if (!isCodex) return;
-    if (isDeliveryPendingQueuedInput(item)) return;
+    if (isDeliveryPendingQueuedInput(item)) {
+      if (state.queuedInput?.itemId == item.itemId) {
+        emit(state.copyWith(queuedInput: null));
+      }
+      return;
+    }
     final offlineClientMessageId = offlineQueuedClientMessageId(item);
     if (offlineClientMessageId != null) {
       emit(state.copyWith(queuedInput: null));

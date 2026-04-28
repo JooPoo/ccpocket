@@ -82,9 +82,12 @@ void main() {
     expect(canceled, isTrue);
   });
 
-  testWidgets('CodexQueuedInputPanel disables actions for delivery pending', (
+  testWidgets('CodexQueuedInputPanel hides steer for delivery pending', (
     tester,
   ) async {
+    var edited = false;
+    var canceled = false;
+
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
@@ -96,22 +99,24 @@ void main() {
             ),
             isDeliveryPending: true,
             onSteer: null,
-            onEdit: null,
-            onCancel: null,
+            onEdit: () => edited = true,
+            onCancel: () => canceled = true,
           ),
         ),
       ),
     );
 
     expect(find.text('Pending delivery'), findsOneWidget);
-    for (final key in [
-      const ValueKey('codex_queue_steer_button'),
-      const ValueKey('codex_queue_edit_button'),
-      const ValueKey('codex_queue_cancel_button'),
-    ]) {
-      final button = tester.widget<IconButton>(find.byKey(key));
-      expect(button.onPressed, isNull);
-    }
+    expect(
+      find.byKey(const ValueKey('codex_queue_steer_button')),
+      findsNothing,
+    );
+
+    await tester.tap(find.byKey(const ValueKey('codex_queue_edit_button')));
+    expect(edited, isTrue);
+
+    await tester.tap(find.byKey(const ValueKey('codex_queue_cancel_button')));
+    expect(canceled, isTrue);
   });
 
   test('moveQueuedInputToComposer cancels queue and overwrites input text', () {

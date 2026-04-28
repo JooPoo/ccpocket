@@ -99,6 +99,7 @@ class BridgeService implements BridgeServiceBase {
   final SessionRuntimeStore _runtimeStore = SessionRuntimeStore();
   final Map<String, int> _pendingHistoryDeltaSinceSeq = {};
   final Map<String, ClientMessage> _inFlightPendingMessages = {};
+  final Map<String, ClientMessage> _inFlightInputMessages = {};
   final Map<String, Timer> _inFlightPendingVisibilityTimers = {};
   final Set<String> _visibleInFlightPendingKeys = {};
   List<OfflinePendingAction> _offlinePendingActions = const [];
@@ -282,6 +283,7 @@ class BridgeService implements BridgeServiceBase {
                     (msg is InputAckMessage ? msg.acceptedSeq : null),
               );
             }
+            _clearDeliveredInFlightInput(msg, sessionId: sessionId);
             switch (msg) {
               case SessionListMessage(
                 :final sessions,
@@ -473,6 +475,7 @@ class BridgeService implements BridgeServiceBase {
         onError: (error, stackTrace) {
           logger.error('WS stream error', error, stackTrace);
           _setBridgeConnectionState(BridgeConnectionState.disconnected);
+          _requeueInFlightInputMessages();
           _requeueInFlightPendingMessages();
           _messageController.add(
             ErrorMessage(message: 'WebSocket error: $error'),
@@ -483,6 +486,7 @@ class BridgeService implements BridgeServiceBase {
           _channel = null;
           if (!_intentionalDisconnect) {
             _setBridgeConnectionState(BridgeConnectionState.disconnected);
+            _requeueInFlightInputMessages();
             _requeueInFlightPendingMessages();
             _scheduleReconnect();
           } else {
@@ -581,6 +585,7 @@ class BridgeService implements BridgeServiceBase {
     onOutgoingMessage?.call(message);
     if (_channel != null && isConnected) {
       if (!_trackInFlightPendingMessage(message)) return;
+      _trackInFlightInputMessage(message);
       try {
         _channel!.sink.add(message.toJson());
       } catch (error, stackTrace) {
@@ -598,6 +603,7 @@ class BridgeService implements BridgeServiceBase {
     final dedupeKey = _offlineMessageDedupeKey(message);
     if (dedupeKey != null) {
       _clearInFlightPendingMessage(dedupeKey);
+      _clearInFlightInputMessage(dedupeKey);
     }
     final didAdd = _addQueuedMessageIfAbsent(message);
     if (didAdd || _isPersistableOfflineMessage(message)) {
@@ -656,6 +662,52 @@ class BridgeService implements BridgeServiceBase {
     _inFlightPendingVisibilityTimers.remove(dedupeKey)?.cancel();
   }
 
+  void _trackInFlightInputMessage(ClientMessage message) {
+    if (message.type != 'input') return;
+    final dedupeKey = _offlineMessageDedupeKey(message);
+    if (dedupeKey == null) return;
+    _inFlightInputMessages[dedupeKey] = message;
+  }
+
+  void _clearInFlightInputMessage(String dedupeKey) {
+    _inFlightInputMessages.remove(dedupeKey);
+  }
+
+  void _clearDeliveredInFlightInput(
+    ServerMessage message, {
+    required String? sessionId,
+  }) {
+    switch (message) {
+      case InputAckMessage(:final clientMessageId) ||
+          InputRejectedMessage(:final clientMessageId):
+        if (clientMessageId == null) return;
+        _clearInFlightInputMessage('input:${sessionId ?? ''}:$clientMessageId');
+      case AssistantServerMessage():
+        if (sessionId == null) return;
+        final prefix = 'input:$sessionId:';
+        for (final key in List<String>.from(_inFlightInputMessages.keys)) {
+          if (!key.startsWith(prefix)) continue;
+          _clearInFlightInputMessage(key);
+          return;
+        }
+      default:
+        return;
+    }
+  }
+
+  void _requeueInFlightInputMessages() {
+    if (_inFlightInputMessages.isEmpty) return;
+    final messages = List<ClientMessage>.from(_inFlightInputMessages.values);
+    _inFlightInputMessages.clear();
+    var didAdd = false;
+    for (final message in messages) {
+      didAdd = _addQueuedMessageIfAbsent(message) || didAdd;
+    }
+    if (didAdd) {
+      unawaited(_persistOfflinePendingMessages());
+    }
+  }
+
   void _requeueInFlightPendingMessages() {
     if (_inFlightPendingMessages.isEmpty) return;
     final messages = List<ClientMessage>.from(_inFlightPendingMessages.values);
@@ -709,6 +761,8 @@ class BridgeService implements BridgeServiceBase {
   String? _offlineMessageDedupeKey(ClientMessage message) {
     final json = jsonDecode(message.toJson()) as Map<String, dynamic>;
     return switch (message.type) {
+      'input' when json['clientMessageId'] is String =>
+        'input:${json['sessionId'] ?? ''}:${json['clientMessageId']}',
       'resume_session' =>
         'resume:${json['provider'] ?? 'claude'}:${json['sessionId']}',
       'start' => 'start:${_canonicalJson(json)}',
@@ -1735,6 +1789,7 @@ class BridgeService implements BridgeServiceBase {
       timer.cancel();
     }
     _inFlightPendingVisibilityTimers.clear();
+    _inFlightInputMessages.clear();
     _channelSub?.cancel();
     _channelSub = null;
     _channel?.sink.close();

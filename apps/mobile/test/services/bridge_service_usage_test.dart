@@ -188,6 +188,86 @@ void main() {
       bridge.dispose();
     });
 
+    test('unacked in-flight input is requeued when socket closes', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final socketReady = Completer<WebSocket>();
+
+      server.transform(WebSocketTransformer()).listen((socket) {
+        socketReady.complete(socket);
+      });
+
+      final bridge = BridgeService();
+      bridge.connect('ws://127.0.0.1:${server.port}');
+      final socket = await socketReady.future;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      bridge.send(
+        ClientMessage.input(
+          'retry after reconnect',
+          sessionId: 's1',
+          clientMessageId: 'cm-retry',
+        ),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      await socket.close();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getStringList('bridge_offline_pending_messages_v1');
+      expect(raw, hasLength(1));
+      expect(jsonDecode(raw!.single), {
+        'type': 'input',
+        'text': 'retry after reconnect',
+        'sessionId': 's1',
+        'clientMessageId': 'cm-retry',
+      });
+
+      bridge.disconnect();
+      await server.close(force: true);
+      bridge.dispose();
+    });
+
+    test('acked in-flight input is not requeued when socket closes', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final socketReady = Completer<WebSocket>();
+
+      server.transform(WebSocketTransformer()).listen((socket) {
+        socketReady.complete(socket);
+      });
+
+      final bridge = BridgeService();
+      bridge.connect('ws://127.0.0.1:${server.port}');
+      final socket = await socketReady.future;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      bridge.send(
+        ClientMessage.input(
+          'already accepted',
+          sessionId: 's1',
+          clientMessageId: 'cm-acked',
+        ),
+      );
+      socket.add(
+        jsonEncode({
+          'type': 'input_ack',
+          'sessionId': 's1',
+          'clientMessageId': 'cm-acked',
+        }),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      await socket.close();
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+
+      final prefs = await SharedPreferences.getInstance();
+      expect(prefs.getStringList('bridge_offline_pending_messages_v1'), isNull);
+
+      bridge.disconnect();
+      await server.close(force: true);
+      bridge.dispose();
+    });
+
     test(
       'persists selected offline messages and excludes transient reads',
       () async {
