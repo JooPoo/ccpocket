@@ -34,6 +34,7 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
   bool _pastHistoryLoaded = false;
   Timer? _statusRefreshTimer;
   final Map<String, Timer> _deliveryPendingTimers = {};
+  final Map<String, QueuedInputItem> _deliveryPendingInputs = {};
 
   /// Number of entries prepended from past_history, so that [replaceEntries]
   /// can preserve them while replacing in-memory history entries.
@@ -171,6 +172,14 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
 
   void _restoreDeliveryPendingInput() {
     if (!isCodex || state.queuedInput != null) return;
+    final pending = _bridge.deliveryPendingInputForSession(
+      sessionId,
+      includeHidden: true,
+    );
+    final clientMessageId = deliveryPendingClientMessageId(pending);
+    if (pending != null && clientMessageId != null) {
+      _deliveryPendingInputs[clientMessageId] = pending;
+    }
     final item = _bridge.deliveryPendingInputForSession(sessionId);
     if (item == null) return;
     emit(state.copyWith(queuedInput: item));
@@ -484,6 +493,9 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
     QueuedInputItem? deliveredPendingInput;
     String? deliveredPendingClientMessageId;
     if (originalMsg is InputAckMessage && originalMsg.queued == false) {
+      final hiddenDeliveryPending = originalMsg.clientMessageId != null
+          ? _deliveryPendingInputs.remove(originalMsg.clientMessageId)
+          : null;
       final offlineMatch =
           offlineQueuedClientMessageId(nextQueuedInput) ==
           originalMsg.clientMessageId;
@@ -493,15 +505,30 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
       if (deliveryMatch) {
         deliveredPendingInput = nextQueuedInput;
         deliveredPendingClientMessageId = originalMsg.clientMessageId;
+        if (originalMsg.clientMessageId != null) {
+          _deliveryPendingInputs.remove(originalMsg.clientMessageId);
+        }
+      } else if (hiddenDeliveryPending != null) {
+        deliveredPendingInput = hiddenDeliveryPending;
+        deliveredPendingClientMessageId = originalMsg.clientMessageId;
       }
       if (offlineMatch || deliveryMatch) {
         nextQueuedInput = null;
       }
     }
-    if (originalMsg is InputRejectedMessage &&
-        deliveryPendingClientMessageId(nextQueuedInput) ==
-            originalMsg.clientMessageId) {
-      nextQueuedInput = null;
+    if (originalMsg is InputRejectedMessage) {
+      if (originalMsg.clientMessageId != null) {
+        _deliveryPendingInputs.remove(originalMsg.clientMessageId);
+      }
+      if (deliveryPendingClientMessageId(nextQueuedInput) ==
+          originalMsg.clientMessageId) {
+        nextQueuedInput = null;
+      }
+    }
+    if (originalMsg is InputAckMessage && originalMsg.queued == true) {
+      if (originalMsg.clientMessageId != null) {
+        _deliveryPendingInputs.remove(originalMsg.clientMessageId);
+      }
     }
     if (originalMsg is! InputAckMessage &&
         update.markUserMessagesSent &&
@@ -511,6 +538,16 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
         nextQueuedInput,
       );
       nextQueuedInput = null;
+      if (deliveredPendingClientMessageId != null) {
+        _deliveryPendingInputs.remove(deliveredPendingClientMessageId);
+      }
+    } else if (originalMsg is! InputAckMessage &&
+        update.markUserMessagesSent &&
+        _deliveryPendingInputs.isNotEmpty) {
+      final entry = _deliveryPendingInputs.entries.first;
+      _deliveryPendingInputs.remove(entry.key);
+      deliveredPendingInput = entry.value;
+      deliveredPendingClientMessageId = entry.key;
     }
     if (deliveredPendingInput != null) {
       nextEntries = _appendDeliveredPendingInputEntry(
@@ -998,6 +1035,7 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
           )
         : null;
     if (deliveryPendingItem != null) {
+      _deliveryPendingInputs[clientMessageId] = deliveryPendingItem;
       _bridge.setDeliveryPendingInput(
         sessionId,
         deliveryPendingItem,
@@ -1103,6 +1141,10 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
   void cancelQueuedInput(QueuedInputItem item) {
     if (!isCodex) return;
     if (isDeliveryPendingQueuedInput(item)) {
+      final clientMessageId = deliveryPendingClientMessageId(item);
+      if (clientMessageId != null) {
+        _deliveryPendingInputs.remove(clientMessageId);
+      }
       _bridge.clearDeliveryPendingInput(sessionId, itemId: item.itemId);
       if (state.queuedInput?.itemId == item.itemId) {
         emit(state.copyWith(queuedInput: null));
@@ -1620,6 +1662,7 @@ class ChatSessionCubit extends Cubit<ChatSessionState> {
       timer.cancel();
     }
     _deliveryPendingTimers.clear();
+    _deliveryPendingInputs.clear();
     _subscription?.cancel();
     _sideEffectsController.close();
     return super.close();

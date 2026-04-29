@@ -75,6 +75,7 @@ void main() {
         'new',
       );
       expect(store.latestHistorySeq('s1'), 0);
+      expect(store.cachedHistorySeq('s1'), 0);
     });
 
     test('history delta appends newer sequenced entries', () {
@@ -95,6 +96,7 @@ void main() {
 
       expect(store.messages('s1'), hasLength(1));
       expect(store.latestHistorySeq('s1'), 2);
+      expect(store.cachedHistorySeq('s1'), 0);
     });
 
     test('bootstrap history delta replaces unsequenced cached timeline', () {
@@ -129,6 +131,7 @@ void main() {
       expect(messages, hasLength(1));
       expect(messages.single, isA<StatusMessage>());
       expect(store.latestHistorySeq('s1'), 1);
+      expect(store.cachedHistorySeq('s1'), 1);
     });
 
     test('history snapshot replaces cached timeline and records sequence', () {
@@ -157,6 +160,82 @@ void main() {
       expect(messages, hasLength(1));
       expect(messages.single.status, ProcessStatus.idle);
       expect(store.latestHistorySeq('s1'), 7);
+      expect(store.cachedHistorySeq('s1'), 7);
+    });
+
+    test('tracks latest and cached history sequence separately', () {
+      final store = SessionRuntimeStore();
+      store.applyServerMessage(
+        's1',
+        const StatusMessage(status: ProcessStatus.starting),
+        historySeq: 1,
+      );
+      store.applyServerMessage(
+        's1',
+        const InputAckMessage(clientMessageId: 'cm-1', acceptedSeq: 2),
+        historySeq: 2,
+      );
+      store.applyServerMessage(
+        's1',
+        AssistantServerMessage(
+          message: AssistantMessage(
+            id: 'assistant-1',
+            role: 'assistant',
+            content: const [TextContent(text: 'cached assistant')],
+            model: 'gpt-5.5',
+          ),
+        ),
+        historySeq: 4,
+      );
+
+      expect(store.latestHistorySeq('s1'), 4);
+      expect(store.cachedHistorySeq('s1'), 1);
+
+      store.applyServerMessage(
+        's1',
+        HistoryDeltaMessage(
+          fromSeq: 2,
+          toSeq: 4,
+          entries: [
+            const HistoryEntry(
+              seq: 2,
+              message: UserInputMessage(text: 'hi', clientMessageId: 'cm-1'),
+            ),
+            const HistoryEntry(
+              seq: 3,
+              message: StatusMessage(status: ProcessStatus.running),
+            ),
+            HistoryEntry(
+              seq: 4,
+              message: AssistantServerMessage(
+                message: AssistantMessage(
+                  id: 'assistant-1',
+                  role: 'assistant',
+                  content: const [TextContent(text: 'canonical assistant')],
+                  model: 'gpt-5.5',
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      final messages = store.messages('s1');
+      expect(messages.map((message) => message.runtimeType), [
+        StatusMessage,
+        UserInputMessage,
+        StatusMessage,
+        AssistantServerMessage,
+      ]);
+      expect((messages[1] as UserInputMessage).text, 'hi');
+      expect(
+        (((messages[3] as AssistantServerMessage).message.content.single)
+                as TextContent)
+            .text,
+        'canonical assistant',
+      );
+      expect(store.latestHistorySeq('s1'), 4);
+      expect(store.cachedHistorySeq('s1'), 4);
     });
 
     test('ignores transient stream deltas', () {
@@ -187,6 +266,7 @@ void main() {
       expect(store.messages('real'), hasLength(1));
       expect(store.getExplorerHistory('real').currentPath, '/repo');
       expect(store.latestHistorySeq('real'), 0);
+      expect(store.cachedHistorySeq('real'), 0);
     });
 
     test('trims old messages per session', () {

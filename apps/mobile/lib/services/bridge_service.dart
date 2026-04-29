@@ -217,9 +217,12 @@ class BridgeService implements BridgeServiceBase {
   /// The last WebSocket URL used for connection (or reconnection).
   String? get lastUrl => _lastUrl;
 
-  QueuedInputItem? deliveryPendingInputForSession(String sessionId) {
+  QueuedInputItem? deliveryPendingInputForSession(
+    String sessionId, {
+    bool includeHidden = false,
+  }) {
     final pending = _deliveryPendingInputs[sessionId];
-    if (pending == null || !pending.visible) return null;
+    if (pending == null || (!includeHidden && !pending.visible)) return null;
     return pending.item;
   }
 
@@ -321,6 +324,7 @@ class BridgeService implements BridgeServiceBase {
               return;
             }
             if (sessionId != null) {
+              _cacheAcceptedInFlightInput(msg, sessionId: sessionId);
               _runtimeStore.applyServerMessage(
                 sessionId,
                 msg,
@@ -556,19 +560,26 @@ class BridgeService implements BridgeServiceBase {
   }
 
   void _handleHistoryDelta(String sessionId, HistoryDeltaMessage msg) {
-    final hadCachedTimeline = _runtimeStore.messages(sessionId).isNotEmpty;
-    final previousSeq = _runtimeStore.latestHistorySeq(sessionId);
+    final previousSnapshot = _runtimeStore.snapshot(sessionId);
+    final hadCachedTimeline = previousSnapshot.messages.isNotEmpty;
+    final previousLatestSeq = previousSnapshot.historySeq;
+    final previousCachedSeq = previousSnapshot.cachedHistorySeq;
     final shouldReplace =
-        previousSeq == 0 && hadCachedTimeline && msg.fromSeq <= 1;
+        hadCachedTimeline &&
+        ((previousCachedSeq == 0 && msg.fromSeq <= 1) ||
+            (msg.fromSeq <= previousCachedSeq + 1 &&
+                msg.fromSeq <= previousLatestSeq));
     _pendingHistoryDeltaSinceSeq.remove(sessionId);
     _runtimeStore.applyServerMessage(sessionId, msg);
 
-    final messages = msg.entries.map((entry) => entry.message).toList();
     if (shouldReplace) {
-      final history = HistoryMessage(messages: messages);
+      final history = HistoryMessage(
+        messages: _runtimeStore.messages(sessionId),
+      );
       _taggedMessageController.add((history, sessionId));
       _messageController.add(history);
     } else {
+      final messages = msg.entries.map((entry) => entry.message).toList();
       for (final message in messages) {
         _taggedMessageController.add((message, sessionId));
         _messageController.add(message);
@@ -714,6 +725,35 @@ class BridgeService implements BridgeServiceBase {
     final dedupeKey = _offlineMessageDedupeKey(message);
     if (dedupeKey == null) return;
     _inFlightInputMessages[dedupeKey] = message;
+  }
+
+  void _cacheAcceptedInFlightInput(
+    ServerMessage message, {
+    required String sessionId,
+  }) {
+    if (message is! InputAckMessage) return;
+    if (message.queued == true) return;
+    final clientMessageId = message.clientMessageId;
+    if (clientMessageId == null || clientMessageId.isEmpty) return;
+    final key = 'input:$sessionId:$clientMessageId';
+    final input = _inFlightInputMessages[key];
+    if (input == null) return;
+
+    final json = jsonDecode(input.toJson()) as Map<String, dynamic>;
+    final text = json['text'] as String?;
+    if (text == null) return;
+    final images = json['images'] as List?;
+
+    _runtimeStore.applyServerMessage(
+      sessionId,
+      UserInputMessage(
+        text: text,
+        clientMessageId: clientMessageId,
+        imageCount: images?.length ?? 0,
+        timestamp: DateTime.now().toUtc().toIso8601String(),
+      ),
+      historySeq: message.acceptedSeq,
+    );
   }
 
   void _clearInFlightInputMessage(String dedupeKey) {
@@ -1141,9 +1181,12 @@ class BridgeService implements BridgeServiceBase {
   void requestSessionHistory(String sessionId) {
     final snapshot = _runtimeStore.snapshot(sessionId);
     if (snapshot.messages.isNotEmpty) {
-      _pendingHistoryDeltaSinceSeq[sessionId] = snapshot.historySeq;
+      _pendingHistoryDeltaSinceSeq[sessionId] = snapshot.cachedHistorySeq;
       send(
-        ClientMessage.getHistoryDelta(sessionId, sinceSeq: snapshot.historySeq),
+        ClientMessage.getHistoryDelta(
+          sessionId,
+          sinceSeq: snapshot.cachedHistorySeq,
+        ),
       );
       return;
     }
@@ -1292,7 +1335,7 @@ class BridgeService implements BridgeServiceBase {
 
   @override
   int cachedSessionHistorySeq(String sessionId) {
-    return _runtimeStore.latestHistorySeq(sessionId);
+    return _runtimeStore.cachedHistorySeq(sessionId);
   }
 
   void setExplorerHistory(

@@ -76,10 +76,16 @@ void main() {
         final socket = await socketReady.future;
         socket.add(
           jsonEncode({
-            'type': 'status',
-            'status': 'running',
+            'type': 'history_delta',
             'sessionId': 's1',
-            'historySeq': 3,
+            'fromSeq': 1,
+            'toSeq': 1,
+            'messages': [
+              {
+                'seq': 1,
+                'message': {'type': 'status', 'status': 'running'},
+              },
+            ],
           }),
         );
         await Future<void>.delayed(const Duration(milliseconds: 50));
@@ -91,7 +97,7 @@ void main() {
         expect(request, {
           'type': 'get_history_delta',
           'sessionId': 's1',
-          'sinceSeq': 3,
+          'sinceSeq': 1,
         });
 
         bridge.disconnect();
@@ -100,6 +106,82 @@ void main() {
         bridge.dispose();
       },
     );
+
+    test('requestSessionHistory uses last complete cached sequence', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final socketReady = Completer<WebSocket>();
+
+      server.transform(WebSocketTransformer()).listen((socket) {
+        socketReady.complete(socket);
+      });
+
+      final outgoing = <ClientMessage>[];
+      final bridge = BridgeService()..onOutgoingMessage = outgoing.add;
+      bridge.connect('ws://127.0.0.1:${server.port}');
+
+      final socket = await socketReady.future;
+      socket.add(
+        jsonEncode({
+          'type': 'history_delta',
+          'sessionId': 's1',
+          'fromSeq': 1,
+          'toSeq': 3,
+          'messages': [
+            {
+              'seq': 1,
+              'message': {'type': 'status', 'status': 'starting'},
+            },
+            {
+              'seq': 2,
+              'message': {'type': 'status', 'status': 'running'},
+            },
+            {
+              'seq': 3,
+              'message': {'type': 'status', 'status': 'idle'},
+            },
+          ],
+        }),
+      );
+      socket.add(
+        jsonEncode({
+          'type': 'assistant',
+          'message': {
+            'id': 'msg-1',
+            'role': 'assistant',
+            'content': [
+              {'type': 'text', 'text': 'Hi. What do you want to work on?'},
+            ],
+            'model': 'gpt-5.5',
+          },
+          'sessionId': 's1',
+          'historySeq': 6,
+        }),
+      );
+      socket.add(
+        jsonEncode({
+          'type': 'result',
+          'subtype': 'success',
+          'sessionId': 's1',
+          'historySeq': 7,
+        }),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      bridge.requestSessionHistory('s1');
+
+      final request =
+          jsonDecode(outgoing.last.toJson()) as Map<String, dynamic>;
+      expect(request, {
+        'type': 'get_history_delta',
+        'sessionId': 's1',
+        'sinceSeq': 3,
+      });
+
+      bridge.disconnect();
+      await socket.close();
+      await server.close(force: true);
+      bridge.dispose();
+    });
 
     test(
       'requestSessionHistory falls back when delta is unsupported',
@@ -213,7 +295,7 @@ void main() {
       bridge.dispose();
     });
 
-    test('input_ack acceptedSeq advances cached history sequence', () async {
+    test('input_ack alone does not advance cached history sequence', () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       final socketReady = Completer<WebSocket>();
 
@@ -235,13 +317,74 @@ void main() {
       );
       await Future<void>.delayed(const Duration(milliseconds: 50));
 
-      expect(bridge.cachedSessionHistorySeq('s1'), 8);
+      expect(bridge.cachedSessionHistorySeq('s1'), 0);
 
       bridge.disconnect();
       await socket.close();
       await server.close(force: true);
       bridge.dispose();
     });
+
+    test(
+      'input_ack caches accepted in-flight user input for re-entry',
+      () async {
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        final socketReady = Completer<WebSocket>();
+
+        server.transform(WebSocketTransformer()).listen((socket) {
+          socketReady.complete(socket);
+        });
+
+        final bridge = BridgeService();
+        bridge.connect('ws://127.0.0.1:${server.port}');
+        final socket = await socketReady.future;
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        socket.add(
+          jsonEncode({
+            'type': 'history_delta',
+            'sessionId': 's1',
+            'fromSeq': 1,
+            'toSeq': 7,
+            'messages': List.generate(7, (index) {
+              return {
+                'seq': index + 1,
+                'message': {'type': 'status', 'status': 'running'},
+              };
+            }),
+          }),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        bridge.send(
+          ClientMessage.input('hi', sessionId: 's1', clientMessageId: 'cm-hi'),
+        );
+        socket.add(
+          jsonEncode({
+            'type': 'input_ack',
+            'sessionId': 's1',
+            'clientMessageId': 'cm-hi',
+            'acceptedSeq': 8,
+            'queued': false,
+          }),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        final cachedUserInputs = bridge
+            .cachedSessionMessages('s1')
+            .whereType<UserInputMessage>()
+            .toList();
+        expect(cachedUserInputs, hasLength(1));
+        expect(cachedUserInputs.single.text, 'hi');
+        expect(cachedUserInputs.single.clientMessageId, 'cm-hi');
+        expect(bridge.cachedSessionHistorySeq('s1'), 8);
+
+        bridge.disconnect();
+        await socket.close();
+        await server.close(force: true);
+        bridge.dispose();
+      },
+    );
 
     test('unacked in-flight input is requeued when socket closes', () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);

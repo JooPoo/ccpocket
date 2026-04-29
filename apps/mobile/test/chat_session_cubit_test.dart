@@ -458,6 +458,42 @@ void main() {
     );
 
     test(
+      'codex first input sent while starting is shown when ack arrives before delay',
+      () async {
+        final cubit = createCubit('s1', provider: Provider.codex);
+        addTearDown(cubit.close);
+        await Future.microtask(() {});
+
+        expect(cubit.state.status, ProcessStatus.starting);
+
+        cubit.sendMessage('First Codex input while starting');
+
+        expect(cubit.state.entries.whereType<UserChatEntry>(), isEmpty);
+        expect(cubit.state.queuedInput, isNull);
+
+        final payload =
+            jsonDecode(mockBridge.sentMessages.single.toJson())
+                as Map<String, dynamic>;
+        mockBridge.emitMessage(
+          InputAckMessage(
+            sessionId: 's1',
+            clientMessageId: payload['clientMessageId'] as String,
+            queued: false,
+          ),
+          sessionId: 's1',
+        );
+        await Future.microtask(() {});
+        await Future<void>.delayed(const Duration(milliseconds: 650));
+
+        final users = cubit.state.entries.whereType<UserChatEntry>().toList();
+        expect(users, hasLength(1));
+        expect(users.single.text, 'First Codex input while starting');
+        expect(users.single.status, MessageStatus.sent);
+        expect(cubit.state.queuedInput, isNull);
+      },
+    );
+
+    test(
       'codex restored user input delta does not duplicate delivery pending entry',
       () async {
         final cubit = createCubit('s1', provider: Provider.codex);
@@ -668,6 +704,48 @@ void main() {
             .toList();
         expect(users, hasLength(1));
         expect(users.single.text, 'Recreate delivery pending');
+        expect(users.single.status, MessageStatus.sent);
+      },
+    );
+
+    test(
+      'codex hidden delivery pending input survives fast recreation and ack',
+      () async {
+        final cubit = createCubit('s1', provider: Provider.codex);
+        mockBridge.emitMessage(
+          const StatusMessage(status: ProcessStatus.idle),
+          sessionId: 's1',
+        );
+        await Future.microtask(() {});
+
+        cubit.sendMessage('Recreate before delivery delay');
+        final payload =
+            jsonDecode(mockBridge.sentMessages.single.toJson())
+                as Map<String, dynamic>;
+        await cubit.close();
+
+        final restored = createCubit('s1', provider: Provider.codex);
+        addTearDown(restored.close);
+        await Future.microtask(() {});
+
+        expect(restored.state.queuedInput, isNull);
+
+        mockBridge.emitMessage(
+          InputAckMessage(
+            sessionId: 's1',
+            clientMessageId: payload['clientMessageId'] as String,
+          ),
+          sessionId: 's1',
+        );
+        await Future.microtask(() {});
+        await Future<void>.delayed(const Duration(milliseconds: 650));
+
+        expect(restored.state.queuedInput, isNull);
+        final users = restored.state.entries
+            .whereType<UserChatEntry>()
+            .toList();
+        expect(users, hasLength(1));
+        expect(users.single.text, 'Recreate before delivery delay');
         expect(users.single.status, MessageStatus.sent);
       },
     );
