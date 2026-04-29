@@ -72,6 +72,20 @@ jobs:
         run: |
           IPA_PATH=$(ls apps/mobile/build/ios/ipa/*.ipa)
           echo "ipa_path=$IPA_PATH" >> "$GITHUB_OUTPUT"
+      - name: Verify iOS entitlements
+        run: |
+          EXTRACT_DIR="$RUNNER_TEMP/ccpocket-ipa"
+          ENTITLEMENTS_PATH="$RUNNER_TEMP/ccpocket-entitlements.plist"
+          rm -rf "$EXTRACT_DIR"
+          mkdir -p "$EXTRACT_DIR"
+          unzip -q "${{ steps.find_ipa.outputs.ipa_path }}" -d "$EXTRACT_DIR"
+          codesign -d --entitlements :- "$EXTRACT_DIR/Payload/Runner.app" > "$ENTITLEMENTS_PATH"
+          APS_ENV=$(/usr/libexec/PlistBuddy -c 'Print :aps-environment' "$ENTITLEMENTS_PATH")
+          echo "aps-environment=$APS_ENV"
+          if [ "$APS_ENV" != "production" ]; then
+            echo "::error::Expected aps-environment=production in TestFlight IPA"
+            exit 1
+          fi
       - name: Upload to TestFlight
         # Intentionally pinned to v3.0.1. v4 switched to iTMSTransporter and
         # currently fails on GitHub macOS runners, so keep this until upstream
