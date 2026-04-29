@@ -32,9 +32,12 @@ end
 platform :android do
   desc "Upload metadata and screenshots to Google Play"
   lane :metadata do
+    version_code = ENV["ANDROID_VERSION_CODE"].to_s.strip
+
     upload_to_play_store(
       json_key_data: ENV["GCLOUD_SERVICE_ACCOUNT_CREDENTIALS"],
       track: "internal",
+      version_code: version_code.empty? ? nil : version_code,
       skip_upload_aab: true,
       skip_upload_apk: true,
       skip_upload_metadata: ENV["SKIP_UPLOAD_METADATA"] == "true",

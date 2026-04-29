@@ -26,6 +26,11 @@ on:
         required: false
         type: boolean
         default: false
+      android_version_code:
+        description: 'Android versionCode to update (defaults to pubspec build number)'
+        required: false
+        type: string
+        default: ''
 
 jobs:
   ios:
@@ -76,6 +81,12 @@ jobs:
       - name: Install fastlane
         run: gem install fastlane
 
+      - name: Read Android version code
+        id: android_version
+        run: |
+          version=$(grep '^version:' pubspec.yaml | awk '{print $2}')
+          echo "code=${version##*+}" >> "$GITHUB_OUTPUT"
+
       - name: Validate metadata
         run: |
           error=0
@@ -105,4 +116,5 @@ jobs:
           SKIP_UPLOAD_METADATA: ${{ inputs.upload_metadata == false }}
           SKIP_UPLOAD_SCREENSHOTS: ${{ inputs.upload_screenshots == false }}
           SKIP_UPLOAD_IMAGES: ${{ inputs.upload_images == false }}
+          ANDROID_VERSION_CODE: ${{ inputs.android_version_code || steps.android_version.outputs.code }}
         run: fastlane android metadata
