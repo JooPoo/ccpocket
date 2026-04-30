@@ -322,26 +322,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 margin: const EdgeInsets.symmetric(horizontal: 16),
                 child: Column(
                   children: [
-                    // Theme
-                    ListTile(
-                      leading: Icon(Icons.palette, color: cs.primary),
-                      title: Text(l.theme),
-                      subtitle: Text(_getThemeLabel(context, state.themeMode)),
-                      trailing: const Icon(Icons.chevron_right, size: 20),
-                      onTap: () => showThemeBottomSheet(
-                        context: context,
-                        current: state.themeMode,
-                        onChanged: (mode) =>
-                            context.read<SettingsCubit>().setThemeMode(mode),
-                      ),
-                    ),
                     if (state.appIconSupported) ...[
-                      Divider(
-                        height: 1,
-                        indent: 16,
-                        endIndent: 16,
-                        color: cs.outlineVariant,
-                      ),
                       ValueListenableBuilder<SupporterState>(
                         valueListenable: revenueCat.supporterState,
                         builder: (context, supporterState, _) {
@@ -377,7 +358,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           );
                         },
                       ),
+                      Divider(
+                        height: 1,
+                        indent: 16,
+                        endIndent: 16,
+                        color: cs.outlineVariant,
+                      ),
                     ],
+                    // Theme
+                    ListTile(
+                      leading: Icon(Icons.palette, color: cs.primary),
+                      title: Text(l.theme),
+                      subtitle: Text(_getThemeLabel(context, state.themeMode)),
+                      trailing: const Icon(Icons.chevron_right, size: 20),
+                      onTap: () => showThemeBottomSheet(
+                        context: context,
+                        current: state.themeMode,
+                        onChanged: (mode) =>
+                            context.read<SettingsCubit>().setThemeMode(mode),
+                      ),
+                    ),
                     Divider(
                       height: 1,
                       indent: 16,
@@ -398,17 +398,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         onChanged: (id) =>
                             context.read<SettingsCubit>().setAppLocaleId(id),
                       ),
-                    ),
-                    Divider(
-                      height: 1,
-                      indent: 16,
-                      endIndent: 16,
-                      color: cs.outlineVariant,
-                    ),
-                    _TextScaleTile(
-                      value: state.textScale,
-                      onChanged: (value) =>
-                          context.read<SettingsCubit>().setTextScale(value),
                     ),
                     Divider(
                       height: 1,
@@ -452,6 +441,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onChanged: (value) => context
                           .read<SettingsCubit>()
                           .setHideVoiceInput(value),
+                    ),
+                    Divider(
+                      height: 1,
+                      indent: 16,
+                      endIndent: 16,
+                      color: cs.outlineVariant,
+                    ),
+                    _TextScaleTile(
+                      value: state.textScale,
+                      onChanged: (value) =>
+                          context.read<SettingsCubit>().setTextScale(value),
                     ),
                     Divider(
                       height: 1,

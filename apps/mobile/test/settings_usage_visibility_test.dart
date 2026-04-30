@@ -564,6 +564,52 @@ void main() {
       },
     );
 
+    testWidgets('orders general settings by conversion and related controls', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settingsCubit = _SeededSettingsCubit(prefs, activeMachineId: null);
+      final manager = MachineManagerService(prefs, _FakeSecureStorage());
+      final machineManagerCubit = MachineManagerCubit(manager, null);
+      final bridge = _FakeBridgeService(connected: false);
+
+      await tester.pumpWidget(
+        await _buildScreen(
+          bridge: bridge,
+          settingsCubit: settingsCubit,
+          machineManagerCubit: machineManagerCubit,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final l = AppLocalizations.of(tester.element(find.byType(Scaffold)));
+      final appIconTop = tester
+          .getTopLeft(find.byKey(const ValueKey('app_icon_tile')))
+          .dy;
+      final themeTop = tester.getTopLeft(find.text(l.theme)).dy;
+      final languageTop = tester.getTopLeft(find.text(l.language)).dy;
+      final voiceInputTop = tester.getTopLeft(find.text(l.voiceInput)).dy;
+      final hideVoiceInputTop = tester
+          .getTopLeft(find.text(l.hideVoiceInput))
+          .dy;
+      final textDensityTop = tester.getTopLeft(find.text(l.textDensity)).dy;
+      final newSessionTabsTop = tester
+          .getTopLeft(find.text(l.settingsNewSessionTabs))
+          .dy;
+
+      expect(appIconTop, lessThan(themeTop));
+      expect(themeTop, lessThan(languageTop));
+      expect(languageTop, lessThan(voiceInputTop));
+      expect(voiceInputTop, lessThan(hideVoiceInputTop));
+      expect(hideVoiceInputTop, lessThan(textDensityTop));
+      expect(textDensityTop, lessThan(newSessionTabsTop));
+
+      await settingsCubit.close();
+      await machineManagerCubit.close();
+      bridge.dispose();
+    });
+
     testWidgets('shows usage section when connected', (tester) async {
       SharedPreferences.setMockInitialValues({});
       final prefs = await SharedPreferences.getInstance();
