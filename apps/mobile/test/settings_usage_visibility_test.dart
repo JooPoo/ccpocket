@@ -406,6 +406,60 @@ void main() {
       latestService.dispose();
       latestBridge.dispose();
 
+      final latestMissingSshSettingsCubit = _SeededSettingsCubit(
+        prefs,
+        activeMachineId: 'machine-1',
+      );
+      final latestMissingSshService = _StaticMachineManagerService([
+        MachineWithStatus(
+          machine: Machine(
+            id: 'machine-1',
+            name: 'Remote Mac',
+            host: '100.64.0.1',
+            sshEnabled: false,
+          ),
+          status: MachineStatus.online,
+          versionInfo: BridgeVersionInfo(version: recommendedBridgeVersion),
+        ),
+      ]);
+      final latestMissingSshCubit = MachineManagerCubit(
+        latestMissingSshService,
+        null,
+      );
+      final latestMissingSshBridge = _FakeBridgeService(
+        connected: true,
+        fakeLastUrl: 'ws://100.64.0.1:8765',
+      );
+
+      await tester.pumpWidget(
+        await _buildScreen(
+          bridge: latestMissingSshBridge,
+          settingsCubit: latestMissingSshSettingsCubit,
+          machineManagerCubit: latestMissingSshCubit,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text(l.bridgeIsUpToDate), findsOneWidget);
+      expect(
+        find.text(
+          l.bridgeVersionCurrentExpected(
+            recommendedBridgeVersion,
+            recommendedBridgeVersion,
+          ),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('settings_bridge_update_setup_tile')),
+        findsNothing,
+      );
+
+      await latestMissingSshSettingsCubit.close();
+      await latestMissingSshCubit.close();
+      latestMissingSshService.dispose();
+      latestMissingSshBridge.dispose();
+
       final missingSshSettingsCubit = _SeededSettingsCubit(
         prefs,
         activeMachineId: 'machine-1',

@@ -1042,12 +1042,12 @@ class _BridgeUpdateStatusTile extends StatelessWidget {
     final versionInfo = machineWithStatus?.versionInfo;
     final hasSshSetup = machine?.canStartRemotely ?? false;
     final isOnline = machineWithStatus?.status == MachineStatus.online;
-    final canShowSetupHelp = !hasSshSetup;
-    final needsUpdate =
+    final bridgeNeedsUpdate =
         isOnline &&
-        hasSshSetup &&
         versionInfo != null &&
         versionInfo.needsUpdate(expectedVersion);
+    final needsUpdate = bridgeNeedsUpdate && hasSshSetup;
+    final canShowSetupHelp = bridgeNeedsUpdate && !hasSshSetup;
     final isKnownUpToDate =
         versionInfo != null && !versionInfo.needsUpdate(expectedVersion);
 
@@ -1056,7 +1056,7 @@ class _BridgeUpdateStatusTile extends StatelessWidget {
         : isKnownUpToDate
         ? l.bridgeIsUpToDate
         : l.updateBridge;
-    final subtitle = !hasSshSetup
+    final subtitle = canShowSetupHelp
         ? l.bridgeUpdateRequiresSetup
         : versionInfo == null
         ? l.bridgeVersionUnknown
