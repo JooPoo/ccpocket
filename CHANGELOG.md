@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.82.0] - 2026-04-30
+
+### Added
+- Add a compact text density setting that can reduce in-app text scale while preserving the system text scale.
+- Add Simplified Chinese App Store metadata and screenshots.
+
+### Fixed
+- Make single Ask User Question prompts scrollable when their content is long.
+
 ## [1.81.1] - 2026-04-30
 
 ### Fixed
