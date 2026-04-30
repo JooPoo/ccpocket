@@ -57,6 +57,20 @@ import UIKit
       } else {
         result(false)
       }
+    case "iosUserInterfaceIdiom":
+      let idiom = UIDevice.current.userInterfaceIdiom
+      if #available(iOS 14.0, *), idiom == .mac {
+        result("mac")
+        return
+      }
+      switch idiom {
+      case .pad:
+        result("pad")
+      case .phone:
+        result("phone")
+      default:
+        result("unspecified")
+      }
     default:
       result(FlutterMethodNotImplemented)
     }

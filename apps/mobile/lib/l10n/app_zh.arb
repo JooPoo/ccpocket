@@ -563,6 +563,12 @@
   "themeDark": "深色",
   "appIconTitle": "应用图标",
   "appIconMonthlySupporterPerk": "这是月度 Supporter 特典。",
+  "appIconSettingsSubtitle": "可以更改 {device} 主屏幕上显示的图标。",
+  "@appIconSettingsSubtitle": {
+    "placeholders": {
+      "device": {"type": "String"}
+    }
+  },
   "appIconSupporterDialogTitle": "月度 Supporter 特典",
   "appIconSupporterSectionLabel": "月度 Supporter 特典",
   "appIconPickerTitle": "选择应用图标",

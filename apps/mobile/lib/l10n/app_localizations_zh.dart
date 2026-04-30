@@ -1220,6 +1220,11 @@ class AppLocalizationsZh extends AppLocalizations {
   String get appIconMonthlySupporterPerk => '这是月度 Supporter 特典。';
 
   @override
+  String appIconSettingsSubtitle(String device) {
+    return '可以更改 $device 主屏幕上显示的图标。';
+  }
+
+  @override
   String get appIconSupporterDialogTitle => '月度 Supporter 特典';
 
   @override

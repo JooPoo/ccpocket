@@ -1284,6 +1284,11 @@ class AppLocalizationsEn extends AppLocalizations {
   String get appIconMonthlySupporterPerk => 'This is a Monthly Supporter perk.';
 
   @override
+  String appIconSettingsSubtitle(String device) {
+    return 'Change the icon on your $device Home Screen.';
+  }
+
+  @override
   String get appIconSupporterDialogTitle => 'Monthly Supporter Perk';
 
   @override

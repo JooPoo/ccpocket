@@ -71,6 +71,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _highlightConnectionSection = false;
   bool _highlightSupportSection = false;
   bool _isIOSAppOnMac = false;
+  String _appIconDeviceName = Platform.isAndroid ? 'Android' : 'iPhone';
 
   void _maybeFocusConnectionSection() {
     if (!widget.focusConnection || _didHandleConnectionFocus) return;
@@ -150,10 +151,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _loadPlatformEnvironment() async {
-    final isIOSAppOnMac = await PlatformEnvironmentService.instance
-        .isIOSAppOnMac();
-    if (!mounted || isIOSAppOnMac == _isIOSAppOnMac) return;
-    setState(() => _isIOSAppOnMac = isIOSAppOnMac);
+    final environment = PlatformEnvironmentService.instance;
+    final isIOSAppOnMac = await environment.isIOSAppOnMac();
+    final appIconDeviceName = await _resolveAppIconDeviceName(environment);
+    if (!mounted) return;
+    if (isIOSAppOnMac == _isIOSAppOnMac &&
+        appIconDeviceName == _appIconDeviceName) {
+      return;
+    }
+    setState(() {
+      _isIOSAppOnMac = isIOSAppOnMac;
+      _appIconDeviceName = appIconDeviceName;
+    });
+  }
+
+  Future<String> _resolveAppIconDeviceName(
+    PlatformEnvironmentService environment,
+  ) async {
+    if (Platform.isAndroid) return 'Android';
+    if (!Platform.isIOS) return 'iPhone';
+
+    final idiom = await environment.iosUserInterfaceIdiom();
+    return idiom == 'pad' ? 'iPad' : 'iPhone';
   }
 
   @override
@@ -338,6 +357,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 context,
                                 selectedIcon: state.selectedAppIcon,
                                 isSupporter: supporterState.isSupporter,
+                                deviceName: _appIconDeviceName,
                               ),
                             ),
                             trailing: const Icon(Icons.chevron_right, size: 20),
@@ -907,10 +927,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     BuildContext context, {
     required AppIconVariant selectedIcon,
     required bool isSupporter,
+    required String deviceName,
   }) {
     final l = AppLocalizations.of(context);
     if (!isSupporter) {
-      return l.appIconMonthlySupporterPerk;
+      return l.appIconSettingsSubtitle(deviceName);
     }
     return switch (selectedIcon) {
       AppIconVariant.defaultIcon => l.appIconOptionDefaultTitle,

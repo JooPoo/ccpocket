@@ -2382,6 +2382,12 @@ abstract class AppLocalizations {
   /// **'月額サポーター特典です。'**
   String get appIconMonthlySupporterPerk;
 
+  /// No description provided for @appIconSettingsSubtitle.
+  ///
+  /// In ja, this message translates to:
+  /// **'{device}のホーム画面に表示されるアイコンを変更できます。'**
+  String appIconSettingsSubtitle(String device);
+
   /// No description provided for @appIconSupporterDialogTitle.
   ///
   /// In ja, this message translates to:

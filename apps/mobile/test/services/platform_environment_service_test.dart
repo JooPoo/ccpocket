@@ -8,10 +8,14 @@ void main() {
   group('PlatformEnvironmentService', () {
     test('returns gateway value', () async {
       final service = PlatformEnvironmentService.test(
-        gateway: const _FakePlatformEnvironmentGateway(true),
+        gateway: const _FakePlatformEnvironmentGateway(
+          isIOSAppOnMacValue: true,
+          iosUserInterfaceIdiomValue: 'pad',
+        ),
       );
 
       expect(await service.isIOSAppOnMac(), isTrue);
+      expect(await service.iosUserInterfaceIdiom(), 'pad');
     });
   });
 
@@ -35,10 +39,23 @@ void main() {
       expect(await gateway.isIOSAppOnMac(), isTrue);
     });
 
+    test('reads iosUserInterfaceIdiom from the platform channel', () async {
+      TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(channel, (call) async {
+            expect(call.method, 'iosUserInterfaceIdiom');
+            return 'pad';
+          });
+
+      final gateway = MethodChannelPlatformEnvironmentGateway(channel);
+
+      expect(await gateway.iosUserInterfaceIdiom(), 'pad');
+    });
+
     test('falls back to false when the channel is unavailable', () async {
       final gateway = MethodChannelPlatformEnvironmentGateway(channel);
 
       expect(await gateway.isIOSAppOnMac(), isFalse);
+      expect(await gateway.iosUserInterfaceIdiom(), isNull);
     });
 
     test('falls back to false on platform errors', () async {
@@ -50,15 +67,23 @@ void main() {
       final gateway = MethodChannelPlatformEnvironmentGateway(channel);
 
       expect(await gateway.isIOSAppOnMac(), isFalse);
+      expect(await gateway.iosUserInterfaceIdiom(), isNull);
     });
   });
 }
 
 class _FakePlatformEnvironmentGateway implements PlatformEnvironmentGateway {
-  const _FakePlatformEnvironmentGateway(this.value);
+  const _FakePlatformEnvironmentGateway({
+    required this.isIOSAppOnMacValue,
+    required this.iosUserInterfaceIdiomValue,
+  });
 
-  final bool value;
+  final bool isIOSAppOnMacValue;
+  final String? iosUserInterfaceIdiomValue;
 
   @override
-  Future<bool> isIOSAppOnMac() async => value;
+  Future<bool> isIOSAppOnMac() async => isIOSAppOnMacValue;
+
+  @override
+  Future<String?> iosUserInterfaceIdiom() async => iosUserInterfaceIdiomValue;
 }

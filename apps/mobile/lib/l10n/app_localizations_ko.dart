@@ -1246,6 +1246,11 @@ class AppLocalizationsKo extends AppLocalizations {
   String get appIconMonthlySupporterPerk => '월간 Supporter 혜택입니다.';
 
   @override
+  String appIconSettingsSubtitle(String device) {
+    return '$device 홈 화면에 표시되는 아이콘을 변경할 수 있습니다.';
+  }
+
+  @override
   String get appIconSupporterDialogTitle => '월간 Supporter 혜택';
 
   @override

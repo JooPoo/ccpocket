@@ -545,6 +545,12 @@
   "themeDark": "ダーク",
   "appIconTitle": "アプリアイコン",
   "appIconMonthlySupporterPerk": "月額サポーター特典です。",
+  "appIconSettingsSubtitle": "{device}のホーム画面に表示されるアイコンを変更できます。",
+  "@appIconSettingsSubtitle": {
+    "placeholders": {
+      "device": {"type": "String"}
+    }
+  },
   "appIconSupporterDialogTitle": "月額サポーター特典",
   "appIconSupporterSectionLabel": "月額サポーター特典",
   "appIconPickerTitle": "アプリアイコンを選ぶ",

@@ -487,6 +487,12 @@
   "themeDark": "Dark",
   "appIconTitle": "App Icon",
   "appIconMonthlySupporterPerk": "This is a Monthly Supporter perk.",
+  "appIconSettingsSubtitle": "Change the icon on your {device} Home Screen.",
+  "@appIconSettingsSubtitle": {
+    "placeholders": {
+      "device": {"type": "String"}
+    }
+  },
   "appIconSupporterDialogTitle": "Monthly Supporter Perk",
   "appIconSupporterSectionLabel": "Monthly Supporter Perk",
   "appIconPickerTitle": "Choose app icon",

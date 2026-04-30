@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 
 abstract class PlatformEnvironmentGateway {
   Future<bool> isIOSAppOnMac();
+  Future<String?> iosUserInterfaceIdiom();
 }
 
 class MethodChannelPlatformEnvironmentGateway
@@ -24,6 +25,18 @@ class MethodChannelPlatformEnvironmentGateway
       return false;
     }
   }
+
+  @override
+  Future<String?> iosUserInterfaceIdiom() async {
+    try {
+      return await _channel.invokeMethod<String>('iosUserInterfaceIdiom');
+    } on MissingPluginException {
+      return null;
+    } on PlatformException catch (e) {
+      debugPrint('Platform environment unavailable: ${e.code}');
+      return null;
+    }
+  }
 }
 
 class PlatformEnvironmentService {
@@ -42,4 +55,6 @@ class PlatformEnvironmentService {
   final PlatformEnvironmentGateway _gateway;
 
   Future<bool> isIOSAppOnMac() => _gateway.isIOSAppOnMac();
+
+  Future<String?> iosUserInterfaceIdiom() => _gateway.iosUserInterfaceIdiom();
 }
