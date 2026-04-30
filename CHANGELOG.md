@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.81.0] - 2026-04-30
+
+### Added
+- Let the Bridge update banner open connection settings directly.
+- Show setup guidance for Bridge updates when SSH or auto-start setup is missing.
+
+### Changed
+- Require Bridge 1.47.2 and label it as the recommended Bridge version.
+- Improve machine card Bridge version wrapping in workspace layouts.
+
+### Fixed
+- Shorten Bridge start health checks while keeping update waits tolerant of npm startup time.
+
 ## [1.80.0] - 2026-04-30
 
 ### Added
