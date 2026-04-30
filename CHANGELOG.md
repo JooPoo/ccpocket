@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.83.1] - 2026-04-30
+
+### Changed
+- Put the App Icon entry first in General settings and keep language-related controls grouped together.
+- Point Korean public links and store metadata at the localized documentation pages.
+
+### Fixed
+- Clarify the App Icon settings subtitle with the current device type instead of showing the Supporter perk message in the settings list.
+
 ## [1.83.0] - 2026-04-30
 
 ### Added
