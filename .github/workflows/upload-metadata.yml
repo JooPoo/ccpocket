@@ -94,7 +94,7 @@ jobs:
       - name: Validate metadata
         run: |
           error=0
-          for lang in en-US ja-JP; do
+          for lang in en-US ja-JP zh-CN ko-KR; do
             file="fastlane/metadata/android/${lang}/short_description.txt"
             if [ -f "$file" ]; then
               len=$(wc -m < "$file" | tr -d ' ')

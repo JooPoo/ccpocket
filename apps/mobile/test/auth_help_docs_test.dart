@@ -39,5 +39,16 @@ void main() {
       expect(content, contains('`claude`'));
       expect(content, contains('`/login`'));
     });
+
+    test('Korean markdown exists with localized guidance', () {
+      final file = File('assets/docs/auth-troubleshooting.ko.md');
+
+      expect(file.existsSync(), isTrue);
+      final content = file.readAsStringSync();
+      expect(content, contains('Bridge 컴퓨터를 직접 사용할 수 없을 때'));
+      expect(content, contains('터미널 앱에서 Bridge 컴퓨터에 연결'));
+      expect(content, contains('`claude`'));
+      expect(content, contains('`/login`'));
+    });
   });
 }

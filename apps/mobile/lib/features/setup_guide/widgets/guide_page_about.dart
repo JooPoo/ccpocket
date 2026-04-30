@@ -77,9 +77,7 @@ class GuidePageAbout extends StatelessWidget {
                     children: [
                       Text(
                         l.guideAboutSdkNoteTitle,
-                        style: Theme.of(
-                          context,
-                        ).textTheme.titleSmall?.copyWith(
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.w600,
                         ),
                       ),

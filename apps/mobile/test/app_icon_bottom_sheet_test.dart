@@ -45,9 +45,7 @@ void main() {
 
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      final l = AppLocalizations.of(
-        tester.element(find.byType(Scaffold).last),
-      );
+      final l = AppLocalizations.of(tester.element(find.byType(Scaffold).last));
 
       expect(find.text('ダーク'), findsOneWidget);
       expect(

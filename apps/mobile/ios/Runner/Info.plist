@@ -11,6 +11,7 @@
 		<string>en</string>
 		<string>ja</string>
 		<string>zh-Hans</string>
+		<string>ko</string>
 	</array>
 	<key>CFBundleDisplayName</key>
 	<string>CC Pocket</string>

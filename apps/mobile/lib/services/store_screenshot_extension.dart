@@ -8,7 +8,7 @@
 /// - `ccpocket.navigateToStoreScenario` — navigate to a named store scenario
 /// - `ccpocket.popToRoot` — pop all routes back to root
 /// - `ccpocket.setTheme` — switch theme (light/dark/system)
-/// - `ccpocket.setLocale` — switch app language (en/ja/zh)
+/// - `ccpocket.setLocale` — switch app language (en/ja/zh/ko)
 library;
 
 import 'package:flutter/foundation.dart';
@@ -150,12 +150,12 @@ void registerStoreScreenshotExtensions() {
     name: 'ccpocket.setLocale',
     description:
         'Switch the app language. '
-        'Values: "en", "ja", "zh", "" (system default).',
+        'Values: "en", "ja", "zh", "ko", "" (system default).',
     callback: (params) async {
       final locale = params['locale'];
       if (locale == null) {
         return MarionetteExtensionResult.invalidParams(
-          'Missing required parameter: locale (en/ja/zh/"")',
+          'Missing required parameter: locale (en/ja/zh/ko/"")',
         );
       }
 

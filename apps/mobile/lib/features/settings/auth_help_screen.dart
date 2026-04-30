@@ -6,7 +6,7 @@ import 'package:flutter_markdown/flutter_markdown.dart';
 import '../../l10n/app_localizations.dart';
 import '../../theme/markdown_style.dart';
 
-enum _AuthHelpLanguage { ja, en, zhHans }
+enum _AuthHelpLanguage { ja, en, zhHans, ko }
 
 extension on _AuthHelpLanguage {
   String get assetPath {
@@ -14,6 +14,7 @@ extension on _AuthHelpLanguage {
       _AuthHelpLanguage.ja => 'assets/docs/auth-troubleshooting.ja.md',
       _AuthHelpLanguage.en => 'assets/docs/auth-troubleshooting.en.md',
       _AuthHelpLanguage.zhHans => 'assets/docs/auth-troubleshooting.zh-CN.md',
+      _AuthHelpLanguage.ko => 'assets/docs/auth-troubleshooting.ko.md',
     };
   }
 }
@@ -44,6 +45,7 @@ class _AuthHelpScreenState extends State<AuthHelpScreen> {
     return switch (locale.languageCode) {
       'ja' => _AuthHelpLanguage.ja,
       'zh' => _AuthHelpLanguage.zhHans,
+      'ko' => _AuthHelpLanguage.ko,
       _ => _AuthHelpLanguage.en,
     };
   }
@@ -60,12 +62,14 @@ class _AuthHelpScreenState extends State<AuthHelpScreen> {
       final zhHans = await rootBundle.loadString(
         _AuthHelpLanguage.zhHans.assetPath,
       );
+      final ko = await rootBundle.loadString(_AuthHelpLanguage.ko.assetPath);
       if (!mounted) return;
       setState(() {
         _markdownByLanguage = {
           _AuthHelpLanguage.ja: ja,
           _AuthHelpLanguage.en: en,
           _AuthHelpLanguage.zhHans: zhHans,
+          _AuthHelpLanguage.ko: ko,
         };
         _loading = false;
       });
@@ -184,6 +188,10 @@ class _AuthHelpLanguageSwitcher extends StatelessWidget {
             ButtonSegment<_AuthHelpLanguage>(
               value: _AuthHelpLanguage.zhHans,
               label: Text(l.authHelpLanguageZhHans),
+            ),
+            ButtonSegment<_AuthHelpLanguage>(
+              value: _AuthHelpLanguage.ko,
+              label: Text(l.authHelpLanguageKo),
             ),
           ],
           selected: {selectedLanguage},

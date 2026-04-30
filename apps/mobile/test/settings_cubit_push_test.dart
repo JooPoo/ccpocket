@@ -185,6 +185,36 @@ void main() {
       bridge.dispose();
     });
 
+    test('registers Korean locale when app locale is ko', () async {
+      SharedPreferences.setMockInitialValues({
+        'settings_app_locale': 'ko',
+        'settings_fcm_machines': '["$_testMachineId"]',
+        'machines_v2':
+            '[{"id":"$_testMachineId","host":"$_testHost","port":$_testPort}]',
+      });
+      final prefs = await SharedPreferences.getInstance();
+      final manager = await _createMachineManager(prefs);
+      await manager.init();
+      final bridge = FakeBridgeService()
+        ..emitConnection(BridgeConnectionState.connected, url: _testUrl);
+      final fcm = FakeFcmService(available: true, token: 'token-1');
+      final cubit = SettingsCubit(
+        prefs,
+        bridgeService: bridge,
+        machineManager: manager,
+        fcmService: fcm,
+      );
+
+      await _flushAsync();
+
+      expect(bridge.registerCalls, hasLength(1));
+      expect(bridge.registerCalls.first.locale, 'ko');
+
+      await cubit.close();
+      await fcm.disposeFake();
+      bridge.dispose();
+    });
+
     test('toggle off unregisters active token', () async {
       SharedPreferences.setMockInitialValues({
         'machines_v2':

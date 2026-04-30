@@ -737,6 +737,7 @@
   "authHelpLanguageJa": "日本語",
   "authHelpLanguageEn": "English",
   "authHelpLanguageZhHans": "简体中文",
+  "authHelpLanguageKo": "한국어",
 
   "terminalApp": "ターミナルアプリ",
   "terminalAppSubtitle": "外部ターミナルアプリでプロジェクトを開く",

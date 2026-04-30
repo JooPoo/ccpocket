@@ -20,32 +20,58 @@ resolve_font() {
     echo "$path"
   fi
 }
+
+resolve_font_candidates() {
+  local fallback=""
+  while [ "$#" -gt 0 ]; do
+    local name="$1" path="$2"
+    [ -z "$fallback" ] && fallback="$path"
+    if magick -list font 2>/dev/null | grep "Font: ${name}$" >/dev/null 2>&1; then
+      echo "$name"
+      return
+    fi
+    if [ -f "$path" ]; then
+      echo "$path"
+      return
+    fi
+    shift 2
+  done
+  echo "$fallback"
+}
 FONT_EN_BOLD="$(resolve_font Helvetica-Bold /System/Library/Fonts/Helvetica.ttc)"
 FONT_EN_REG="$(resolve_font Helvetica /System/Library/Fonts/Helvetica.ttc)"
 FONT_JA_BOLD="$(resolve_font Hiragino-Sans-W7 '/System/Library/Fonts/ヒラギノ角ゴシック W7.ttc')"
 FONT_JA_REG="$(resolve_font Hiragino-Sans-W3 '/System/Library/Fonts/ヒラギノ角ゴシック W3.ttc')"
 FONT_ZH_BOLD="$(resolve_font PingFang-SC-Semibold /System/Library/Fonts/PingFang.ttc)"
 FONT_ZH_REG="$(resolve_font PingFang-SC-Regular /System/Library/Fonts/PingFang.ttc)"
+FONT_KO_BOLD="$(resolve_font_candidates \
+  Noto-Sans-CJK-KR-Bold /Library/Fonts/NotoSansCJKkr-Bold.otf \
+  Pretendard-Bold /Library/Fonts/Pretendard-Bold.otf \
+  AppleSDGothicNeo-Bold /System/Library/Fonts/AppleSDGothicNeo.ttc)"
+FONT_KO_REG="$(resolve_font_candidates \
+  Noto-Sans-CJK-KR-Regular /Library/Fonts/NotoSansCJKkr-Regular.otf \
+  Pretendard-Regular /Library/Fonts/Pretendard-Regular.otf \
+  AppleSDGothicNeo-Regular /System/Library/Fonts/AppleSDGothicNeo.ttc)"
 HERO_ILLUSTRATION="${SCRIPT_DIR}/assets/remote-agent-train-laptop.png"
 
-# Screenshot definitions: key, keyword_en, title_en, keyword_ja, title_ja, keyword_zh, title_zh
+# Screenshot definitions: key, keyword_en, title_en, keyword_ja, title_ja, keyword_zh, title_zh, keyword_ko, title_ko
 SCREENSHOTS=(
-  "01_session_list|Code Agents, From Your Phone|They run on your computer. You control them anywhere.|コードエージェントをスマホから|PCで実行。どこからでも操作。|用手机操控编程代理|在电脑上运行，随时随地控制"
-  "02_approval_list|Multiple sessions|Approve at a glance|複数セッション一覧|まとめて承認対応|多会话一览|一目了然，批量审批"
-  "03_multi_question|Mobile-first UI|Questions, answered instantly|モバイル最適化|承認UIで素早く回答|移动端优化|快速回答审批请求"
-  "04_markdown_input|Write rich prompts|Bullet lists made easy|リッチなプロンプト|箇条書きが簡単|丰富的提示|轻松编写列表"
-  "05_image_attach|Attach images|From clipboard or gallery|画像を添付|クリップボードから貼り付け|附加图片|从剪贴板或相册选取"
-  "06_git_diff|Review diffs|See every change at once|差分を確認|変更を一覧表示|审查差异|一览所有代码变更"
-  "07_new_session|Just your phone|Open the app, pick a project, go|スマホだけでOK|アプリを開いて、すぐ開発|只需手机|打开应用，选择项目，开始"
-  "08_dark_theme|Dark mode|Easy on the eyes|ダークモード|目に優しいダークテーマ|深色模式|护眼深色主题"
+  "01_session_list|Code Agents, From Your Phone|They run on your computer. You control them anywhere.|コードエージェントをスマホから|PCで実行。どこからでも操作。|用手机操控编程代理|在电脑上运行，随时随地控制|휴대폰에서 코딩 에이전트 제어|PC에서 실행하고 어디서든 조작"
+  "02_approval_list|Multiple sessions|Approve at a glance|複数セッション一覧|まとめて承認対応|多会话一览|一目了然，批量审批|여러 세션을 한눈에|승인을 빠르게 처리"
+  "03_multi_question|Mobile-first UI|Questions, answered instantly|モバイル最適化|承認UIで素早く回答|移动端优化|快速回答审批请求|모바일에 최적화|질문과 승인을 즉시 처리"
+  "04_markdown_input|Write rich prompts|Bullet lists made easy|リッチなプロンプト|箇条書きが簡単|丰富的提示|轻松编写列表|풍부한 프롬프트 작성|목록 입력도 간편하게"
+  "05_image_attach|Attach images|From clipboard or gallery|画像を添付|クリップボードから貼り付け|附加图片|从剪贴板或相册选取|이미지 첨부|클립보드나 갤러리에서"
+  "06_git_diff|Review diffs|See every change at once|差分を確認|変更を一覧表示|审查差异|一览所有代码变更|diff 리뷰|모든 변경을 한 번에 확인"
+  "07_new_session|Just your phone|Open the app, pick a project, go|スマホだけでOK|アプリを開いて、すぐ開発|只需手机|打开应用，选择项目，开始|휴대폰만 있으면 OK|앱을 열고 바로 개발 시작"
+  "08_dark_theme|Dark mode|Easy on the eyes|ダークモード|目に優しいダークテーマ|深色模式|护眼深色主题|다크 모드|눈이 편한 어두운 테마"
 )
 
 IPAD_SCREENSHOTS=(
-  "01_workspace_overview|Tablet-optimized UI|Chat, sessions, and Git side by side|タブレット最適化 UI|会話、セッション、差分を並べて見渡せる|平板优化界面|会话、会话列表与差异并排查看"
-  "02_workspace_explorer|IDE-like workflow|Keep files next to the conversation|IDE ライクな操作感|会話しながらファイルを横で確認できる|IDE 般的操作体验|一边对话一边在旁边查看文件"
-  "03_approval_context|Stay in flow|Review requests without leaving your place|流れを止めずに承認|今見ている画面のまま判断できる|不中断当前流程|在当前画面中直接完成审批"
-  "04_approval_queue|Review requests together|Handle multiple approvals in one place|承認依頼をまとめて確認|複数セッションの待ちを一気に処理|集中查看审批请求|在一个地方处理多个待审批会话"
-  "05_dark_workspace|Built for focus|An immersive layout like your desktop IDE|iPad でも集中して開発|デスクトップ IDE のような没入感|专注开发而生|像桌面 IDE 一样沉浸的布局"
+  "01_workspace_overview|Tablet-optimized UI|Chat, sessions, and Git side by side|タブレット最適化 UI|会話、セッション、差分を並べて見渡せる|平板优化界面|会话、会话列表与差异并排查看|태블릿 최적화 UI|채팅, 세션, Git을 나란히"
+  "02_workspace_explorer|IDE-like workflow|Keep files next to the conversation|IDE ライクな操作感|会話しながらファイルを横で確認できる|IDE 般的操作体验|一边对话一边在旁边查看文件|IDE 같은 워크플로|대화 옆에서 파일 확인"
+  "03_approval_context|Stay in flow|Review requests without leaving your place|流れを止めずに承認|今見ている画面のまま判断できる|不中断当前流程|在当前画面中直接完成审批|흐름을 끊지 않고 승인|현재 화면에서 바로 판단"
+  "04_approval_queue|Review requests together|Handle multiple approvals in one place|承認依頼をまとめて確認|複数セッションの待ちを一気に処理|集中查看审批请求|在一个地方处理多个待审批会话|승인 요청을 모아 보기|여러 세션을 한곳에서 처리"
+  "05_dark_workspace|Built for focus|An immersive layout like your desktop IDE|iPad でも集中して開発|デスクトップ IDE のような没入感|专注开发而生|像桌面 IDE 一样沉浸的布局|집중을 위한 작업 공간|데스크톱 IDE 같은 몰입감"
 )
 
 compose_hero_screenshot() {
@@ -210,7 +236,7 @@ compose_screenshot() {
 # Process English
 echo "=== English ==="
 for entry in "${SCREENSHOTS[@]}"; do
-  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh <<< "$entry"
+  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh kw_ko tt_ko <<< "$entry"
   compose_screenshot "$key" "$kw_en" "$tt_en" "en-US" "$FONT_EN_BOLD" "$FONT_EN_REG"
 done
 
@@ -219,7 +245,7 @@ echo ""
 echo "=== Japanese ==="
 mkdir -p "${SCRIPT_DIR}/ja"
 for entry in "${SCREENSHOTS[@]}"; do
-  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh <<< "$entry"
+  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh kw_ko tt_ko <<< "$entry"
   # Always copy latest source screenshot from en-US
   cp "${SCRIPT_DIR}/en-US/${key}.png" "${SCRIPT_DIR}/ja/${key}.png" 2>/dev/null || true
   compose_screenshot "$key" "$kw_ja" "$tt_ja" "ja" "$FONT_JA_BOLD" "$FONT_JA_REG"
@@ -230,10 +256,21 @@ echo ""
 echo "=== Chinese (Simplified) ==="
 mkdir -p "${SCRIPT_DIR}/zh-CN"
 for entry in "${SCREENSHOTS[@]}"; do
-  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh <<< "$entry"
+  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh kw_ko tt_ko <<< "$entry"
   # Always copy latest source screenshot from en-US
   cp "${SCRIPT_DIR}/en-US/${key}.png" "${SCRIPT_DIR}/zh-CN/${key}.png" 2>/dev/null || true
   compose_screenshot "$key" "$kw_zh" "$tt_zh" "zh-CN" "$FONT_ZH_BOLD" "$FONT_ZH_REG"
+done
+
+# Process Korean
+echo ""
+echo "=== Korean ==="
+mkdir -p "${SCRIPT_DIR}/ko"
+for entry in "${SCREENSHOTS[@]}"; do
+  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh kw_ko tt_ko <<< "$entry"
+  # Always copy latest source screenshot from en-US
+  cp "${SCRIPT_DIR}/en-US/${key}.png" "${SCRIPT_DIR}/ko/${key}.png" 2>/dev/null || true
+  compose_screenshot "$key" "$kw_ko" "$tt_ko" "ko" "$FONT_KO_BOLD" "$FONT_KO_REG"
 done
 
 # === iPad Landscape (2752x2064) ===
@@ -341,22 +378,29 @@ compose_ipad_screenshot() {
 echo ""
 echo "=== iPad English ==="
 for entry in "${IPAD_SCREENSHOTS[@]}"; do
-  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh <<< "$entry"
+  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh kw_ko tt_ko <<< "$entry"
   compose_ipad_screenshot "$key" "$kw_en" "$tt_en" "en-US" "$FONT_EN_BOLD" "$FONT_EN_REG" "en-US"
 done
 
 echo ""
 echo "=== iPad Japanese ==="
 for entry in "${IPAD_SCREENSHOTS[@]}"; do
-  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh <<< "$entry"
+  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh kw_ko tt_ko <<< "$entry"
   compose_ipad_screenshot "$key" "$kw_ja" "$tt_ja" "ja" "$FONT_JA_BOLD" "$FONT_JA_REG" "en-US"
 done
 
 echo ""
 echo "=== iPad Chinese (Simplified) ==="
 for entry in "${IPAD_SCREENSHOTS[@]}"; do
-  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh <<< "$entry"
+  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh kw_ko tt_ko <<< "$entry"
   compose_ipad_screenshot "$key" "$kw_zh" "$tt_zh" "zh-CN" "$FONT_ZH_BOLD" "$FONT_ZH_REG" "en-US"
+done
+
+echo ""
+echo "=== iPad Korean ==="
+for entry in "${IPAD_SCREENSHOTS[@]}"; do
+  IFS='|' read -r key kw_en tt_en kw_ja tt_ja kw_zh tt_zh kw_ko tt_ko <<< "$entry"
+  compose_ipad_screenshot "$key" "$kw_ko" "$tt_ko" "ko" "$FONT_KO_BOLD" "$FONT_KO_REG" "en-US"
 done
 
 # === README banner (4 screenshots side by side, resized to 1200px width) ===
@@ -368,7 +412,7 @@ mkdir -p "$README_IMG_DIR"
 
 README_KEYS=("01_session_list" "02_approval_list" "04_markdown_input" "07_new_session")
 
-for lang_dir in en-US ja zh-CN; do
+for lang_dir in en-US ja zh-CN ko; do
   README_INPUTS=()
   for k in "${README_KEYS[@]}"; do
     README_INPUTS+=("${SCRIPT_DIR}/${lang_dir}/${k}_framed.png")
@@ -385,14 +429,14 @@ for lang_dir in en-US ja zh-CN; do
 done
 
 # === Copy framed screenshots to store upload directories ===
-# iOS: screenshots/store/{en-US,ja,zh-Hans}/ (used by fastlane deliver)
-# Android: metadata/android/{en-US,ja-JP,zh-CN}/images/phoneScreenshots/
+# iOS: screenshots/store/{en-US,ja,zh-Hans,ko}/ (used by fastlane deliver)
+# Android: metadata/android/{en-US,ja-JP,zh-CN,ko-KR}/images/phoneScreenshots/
 echo ""
 echo "=== Store upload directories ==="
 STORE_DIR="${SCRIPT_DIR}/store"
 ANDROID_META="${SCRIPT_DIR}/../../fastlane/metadata/android"
 
-for lang_dir in en-US ja zh-CN; do
+for lang_dir in en-US ja zh-CN ko; do
   # iOS uses zh-Hans for Simplified Chinese, while Android keeps zh-CN.
   if [ "$lang_dir" = "zh-CN" ]; then
     ios_lang="zh-Hans"
@@ -414,6 +458,8 @@ for lang_dir in en-US ja zh-CN; do
     android_lang="en-US"
   elif [ "$lang_dir" = "ja" ]; then
     android_lang="ja-JP"
+  elif [ "$lang_dir" = "ko" ]; then
+    android_lang="ko-KR"
   else
     android_lang="zh-CN"
   fi

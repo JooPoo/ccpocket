@@ -1622,6 +1622,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get authHelpLanguageZhHans => '简体中文';
 
   @override
+  String get authHelpLanguageKo => '한국어';
+
+  @override
   String get terminalApp => '终端应用';
 
   @override

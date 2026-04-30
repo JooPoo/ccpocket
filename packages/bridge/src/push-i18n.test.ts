@@ -8,6 +8,11 @@ describe("push i18n", () => {
     expect(normalizePushLocale("zh_Hans")).toBe("zh");
   });
 
+  it("returns ko for Korean locale tags", () => {
+    expect(normalizePushLocale("ko")).toBe("ko");
+    expect(normalizePushLocale("ko-KR")).toBe("ko");
+  });
+
   it("falls back to en for unsupported locales", () => {
     expect(normalizePushLocale("fr")).toBe("en");
   });
@@ -15,6 +20,12 @@ describe("push i18n", () => {
   it("returns Chinese translations with placeholders resolved", () => {
     expect(t("zh", "approval_body", { toolName: "apply_patch" })).toBe(
       "请批准执行 apply_patch",
+    );
+  });
+
+  it("returns Korean translations with placeholders resolved", () => {
+    expect(t("ko", "approval_body", { toolName: "apply_patch" })).toBe(
+      "apply_patch 실행을 승인하세요",
     );
   });
 });

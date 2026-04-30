@@ -8,6 +8,7 @@
 
 **EN**: Mobile client for Codex and Claude coding agents
 **JA**: Codex / Claude対応のモバイルクライアント
+**KO**: Codex와 Claude 코딩 에이전트를 위한 모바일 클라이언트
 
 ## Full Description
 
@@ -73,6 +74,37 @@ ccpocketは、MacやPC上で動作するセルフホストのBridge Serverに接
 
 ソースコードは https://github.com/K9i-0/ccpocket で公開しています。
 
+### Korean (한국어)
+
+휴대폰에서 Codex와 Claude를 제어하세요.
+
+ccpocket은 Mac 또는 PC에서 실행되는 셀프 호스팅 Bridge Server에 연결하여, 어디서든 코딩 에이전트 세션을 완전히 제어할 수 있게 해줍니다.
+
+**주요 기능**
+
+- Codex / Claude와 실시간 채팅(스트리밍 지원)
+- 여러 세션 생성, 전환, 재개
+- 파일 편집 및 명령 실행 승인/거부
+- 문법 강조가 적용된 git diff 보기
+- 세션 이미지와 스크린샷 탐색
+- 프롬프트 음성 입력
+- 여러 머신 관리 및 SSH 원격 시작/중지
+- QR 코드, mDNS 자동 검색, 저장된 머신으로 연결
+- 승인 요청과 세션 결과 푸시 알림
+
+**사용 방법**
+
+1. Mac/PC에 Bridge Server 설치: `npx @ccpocket/bridge@latest`
+2. ccpocket을 열고 QR 코드를 스캔
+3. 휴대폰에서 Codex 또는 Claude로 코딩 시작
+
+**필수 조건**
+
+- Bridge Server를 실행할 Mac 또는 PC(Node.js v18 이상)
+- 서버에 Codex CLI 및/또는 Claude Code CLI 설치
+
+소스 코드는 https://github.com/K9i-0/ccpocket 에서 확인할 수 있습니다.
+
 ## Category
 
 - **Primary**: Developer Tools
@@ -81,6 +113,8 @@ ccpocketは、MacやPC上で動作するセルフホストのBridge Serverに接
 ## Keywords (iOS, 100 chars max)
 
 codex,claude,code,ai,coding,agent,mobile,bridge,ssh,remote
+
+Korean keywords: codex,claude,코딩,AI,에이전트,모바일,bridge,ssh,원격
 
 ## Content Rating
 

@@ -1697,6 +1697,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get authHelpLanguageZhHans => 'Simplified Chinese';
 
   @override
+  String get authHelpLanguageKo => '한국어';
+
+  @override
   String get terminalApp => 'Terminal App';
 
   @override

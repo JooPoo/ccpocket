@@ -1,0 +1,818 @@
+{
+  "@@locale": "ko",
+  "appTitle": "CC Pocket",
+  "cancel": "취소",
+  "save": "저장",
+  "delete": "삭제",
+  "remove": "제거",
+  "removeProjectTitle": "프로젝트 제거",
+  "removeProjectConfirm": "최근 프로젝트에서 \"{name}\"을 제거할까요?",
+  "@removeProjectConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "Object"
+      }
+    }
+  },
+  "rename": "이름 변경",
+  "renameSession": "세션 이름 변경",
+  "sessionNameHint": "세션 이름",
+  "clearName": "이름 지우기",
+  "connect": "연결",
+  "copy": "복사",
+  "copied": "복사됨",
+  "copiedToClipboard": "클립보드에 복사됨",
+  "lineCopied": "줄이 복사됨",
+  "start": "시작",
+  "stop": "중지",
+  "send": "보내기",
+  "settings": "설정",
+  "gallery": "갤러리",
+  "git": "Git",
+  "explorer": "Explorer",
+  "galleryWithCount": "갤러리 ({count})",
+  "disconnect": "연결 해제",
+  "back": "뒤로",
+  "next": "다음",
+  "done": "완료",
+  "skip": "건너뛰기",
+  "edit": "편집",
+  "share": "공유",
+  "all": "전체",
+  "none": "없음",
+  "serverUnreachable": "서버에 연결할 수 없음",
+  "serverUnreachableBody": "다음 Bridge 서버에 연결할 수 없습니다:",
+  "setupSteps": "설정 단계:",
+  "setupStep1Title": "Bridge 서버 시작",
+  "setupStep1Command": "npx --yes @ccpocket/bridge@latest",
+  "setupStep2Title": "항상 실행하려면 서비스로 등록",
+  "setupStep2Command": "npx --yes @ccpocket/bridge@latest setup",
+  "setupNetworkHint": "두 기기가 같은 네트워크에 있는지 확인하세요(또는 Tailscale 사용).",
+  "connectAnyway": "그래도 연결",
+  "stopSession": "세션 중지",
+  "stopSessionConfirm": "이 세션을 중지할까요? Claude 프로세스가 종료됩니다.",
+  "startNewWithSameSettings": "같은 설정으로 새로 시작",
+  "copyResumeCommand": "재개 명령 복사",
+  "copyResumeCommandSubtitle": "macOS / Linux에서 이어서 작업",
+  "resumeCommandCopied": "재개 명령이 복사됨",
+  "editSettingsThenStart": "설정을 편집한 뒤 시작",
+  "serverRequiresApiKey": "이 서버에는 API 키가 필요합니다",
+  "bridgeServerUpdated": "Bridge 서버가 업데이트됨",
+  "failedToUpdateServer": "서버 업데이트 실패",
+  "bridgeServerStarted": "Bridge 서버가 시작됨",
+  "failedToStartServer": "서버 시작 실패",
+  "bridgeServerStopped": "Bridge 서버가 중지됨",
+  "failedToStopServer": "서버 중지 실패",
+  "sshPassword": "SSH 비밀번호",
+  "sshPasswordPrompt": "{machineName}의 SSH 비밀번호 입력",
+  "password": "비밀번호",
+  "deleteMachine": "컴퓨터 삭제",
+  "deleteMachineConfirm": "\"{displayName}\"을 삭제할까요? 저장된 인증 정보가 모두 제거됩니다.",
+  "connectToBridgeServer": "Bridge 서버에 연결",
+  "orConnectManually": "또는 수동으로 연결",
+  "serverUrl": "서버 URL",
+  "serverUrlHint": "ws://<host-ip>:8765",
+  "apiKeyOptional": "API 키(선택 사항)",
+  "apiKeyHint": "인증이 없으면 비워 두세요",
+  "scanQrCode": "QR 코드 스캔",
+  "setupGuide": "설정 가이드",
+  "showSessions": "왼쪽 패널 표시",
+  "hideSessions": "왼쪽 패널 숨기기",
+  "workspaceLandingSelectSessionMessage": "왼쪽 패널에서 세션을 선택하세요.",
+  "workspaceLandingCreateSessionMessage": "왼쪽 패널의 새로 만들기에서 세션을 만드세요.",
+  "workspaceLandingDisconnectedMessage": "Bridge가 연결되어 있지 않습니다. 왼쪽 패널에서 연결하거나 설정 가이드를 열어 컴퓨터를 설정하세요.",
+  "running": "실행 중",
+  "recentSessions": "최근 세션",
+  "search": "검색",
+  "searchSessions": "세션 검색...",
+  "sessionDisplayModeFirst": "처음",
+  "sessionDisplayModeLast": "마지막",
+  "sessionDisplayModeSummary": "요약",
+  "allAiTools": "모든 AI 도구",
+  "allProjects": "모든 프로젝트",
+  "named": "이름 있음",
+  "machines": "컴퓨터",
+  "refreshStatus": "상태 새로고침",
+  "add": "추가",
+  "noSavedMachinesDescription": "저장된 컴퓨터가 없습니다.\n추가하면 빠르게 연결하거나 Bridge 서버를 원격으로 시작할 수 있습니다.",
+  "readyToStart": "시작할 준비 완료",
+  "readyToStartDescription": "+ 버튼을 눌러 새 세션을 만들고 Claude로 코딩을 시작하세요.",
+  "newSession": "새 세션",
+  "neverConnected": "연결한 적 없음",
+  "justNow": "방금",
+  "minutesAgo": "{minutes}분 전",
+  "hoursAgo": "{hours}시간 전",
+  "daysAgo": "{days}일 전",
+  "unfavorite": "즐겨찾기 해제",
+  "favorite": "즐겨찾기",
+  "updateBridge": "Bridge 업데이트",
+  "bridgeIsUpToDate": "Bridge가 최신 상태입니다",
+  "bridgeUpdateAvailable": "업데이트 사용 가능",
+  "bridgeUpdateRequiresSetup": "SSH 및 Bridge 자동 시작 설정이 필요합니다",
+  "bridgeVersionUnknown": "Bridge 버전 알 수 없음",
+  "bridgeVersionCurrentExpected": "현재 v{current}, 권장 v{expected}+",
+  "@bridgeVersionCurrentExpected": {
+    "placeholders": {
+      "current": {
+        "type": "String"
+      },
+      "expected": {
+        "type": "String"
+      }
+    }
+  },
+  "bridgeUpdateSetupTitle": "Bridge 업데이트 준비",
+  "bridgeUpdateSetupDescription": "앱에서 Bridge를 업데이트하려면 컴퓨터의 SSH 접속과 Bridge 자동 시작 설정이 필요합니다.",
+  "bridgeUpdateSetupEnableSsh": "Bridge 연결 설정에서 SSH를 활성화하세요.",
+  "bridgeUpdateSetupRunCommand": "대상 컴퓨터에서 설정 명령을 실행하세요.",
+  "bridgeUpdateSetupCommand": "npx @ccpocket/bridge@latest setup",
+  "stopServer": "서버 중지",
+  "update": "업데이트",
+  "download": "다운로드",
+  "appUpdateAvailable": "v{version} 사용 가능",
+  "@appUpdateAvailable": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
+  "macosNativeAppBannerTitle": "네이티브 macOS 앱 사용",
+  "macosNativeAppBannerSubtitle": "CC Pocket은 네이티브 데스크톱 앱에서 macOS에 최적화되어 있습니다. GitHub Releases에서 설치하세요.",
+  "openGitHubReleases": "GitHub Releases 열기",
+  "macosNativeAppSettingsTitle": "macOS 네이티브 앱",
+  "macosNativeAppSettingsSubtitle": "macOS에 최적화되어 있으므로 Mac에서는 권장됩니다.",
+  "supportBannerTitle": "CC Pocket이 도움이 되었나요?",
+  "supportBannerSubtitle": "후원은 지속적인 개발에 도움이 됩니다.",
+  "supportBannerAction": "후원 보기",
+  "offline": "오프라인",
+  "unreachable": "연결 불가",
+  "checking": "확인 중...",
+  "recentProjects": "최근 프로젝트",
+  "orEnterPath": "또는 경로 입력",
+  "projectPath": "프로젝트 경로",
+  "projectPathHint": "/path/to/your/project",
+  "permission": "권한",
+  "approval": "승인",
+  "restart": "재시작",
+  "worktree": "Worktree",
+  "advanced": "고급",
+  "modelOptional": "모델(선택 사항)",
+  "effort": "Effort",
+  "defaultLabel": "기본값",
+  "codexProfilePrecedenceNote": "선택한 프로필에 같은 설정이 있으면 아래 옵션보다 우선합니다.",
+  "maxTurns": "최대 턴 수",
+  "maxTurnsHint": "예: 8",
+  "maxTurnsError": "0보다 큰 정수여야 합니다",
+  "maxBudgetUsd": "최대 예산(USD)",
+  "maxBudgetHint": "예: 1.00",
+  "maxBudgetError": "0 이상의 숫자여야 합니다",
+  "fallbackModel": "대체 모델",
+  "forkSessionOnResume": "재개 시 세션 포크",
+  "persistSessionHistory": "세션 기록 유지",
+  "model": "모델",
+  "sandbox": "샌드박스",
+  "reasoning": "추론",
+  "webSearch": "웹 검색",
+  "networkAccess": "네트워크 액세스",
+  "additionalWritableRootsTitle": "추가로 접근할 디렉터리",
+  "additionalWritableRootsDescription": "이 세션의 Codex config.toml writable_roots에 더해 추가됩니다.",
+  "additionalWritableRootsTooltip": "선택한 프로젝트 외의 파일도 읽거나 편집해야 할 때 사용하세요.",
+  "additionalWritableRootsSuggestions": "최근 프로젝트",
+  "addDirectory": "디렉터리 추가",
+  "directoryPath": "디렉터리 경로",
+  "worktreeNew": "새로 만들기",
+  "worktreeExisting": "기존 ({count})",
+  "branchOptional": "브랜치(선택 사항)",
+  "branchHint": "feature/...",
+  "noExistingWorktrees": "기존 worktree 없음",
+  "planApprovalSummary": "위 계획을 검토해 승인하거나 계속 수정하세요",
+  "planApprovalSummaryCard": "계획을 검토해 승인하거나 계속 수정하세요",
+  "toolApprovalSummary": "도구 실행에 승인이 필요합니다",
+  "planApproval": "계획 승인",
+  "approvalRequired": "승인 필요",
+  "viewEditPlan": "계획 보기",
+  "keepPlanning": "계획 계속하기",
+  "keepPlanningHint": "무엇을 변경할까요...",
+  "sendFeedbackKeepPlanning": "피드백을 보내고 계획 계속하기",
+  "acceptAndClear": "수락하고 지우기",
+  "acceptPlan": "계획 수락",
+  "continuePlanning": "계속 계획",
+  "reject": "거부",
+  "approve": "승인",
+  "always": "항상",
+  "approveOnce": "한 번 허용",
+  "approveForSession": "이 세션에서 허용",
+  "approveAlways": "영구 허용",
+  "approveAlwaysSub": "허용",
+  "approveSessionMain": "이 세션",
+  "approveSessionSub": "허용",
+  "permissionDefaultDescription": "표준 권한 확인",
+  "permissionAutoDescription": "내장 안전 확인으로 Claude가 승인을 자동 처리합니다",
+  "permissionAcceptEditsDescription": "파일 편집 자동 승인",
+  "permissionPlanDescription": "변경 실행 전에 분석하고 계획",
+  "permissionBypassDescription": "대부분의 승인 확인 없이 실행",
+  "executionDefaultDescription": "표준 권한 확인",
+  "executionAcceptEditsDescription": "파일 편집 자동 승인",
+  "executionFullAccessDescription": "대부분의 승인 확인 없이 실행",
+  "codexPlanModeDescription": "먼저 계획을 작성한 뒤 승인 후 실행",
+  "sandboxRestrictedDescription": "제한된 환경에서 명령 실행",
+  "sandboxNativeDescription": "네이티브로 명령 실행",
+  "sandboxNativeCautionDescription": "네이티브로 명령 실행(주의)",
+  "sheetSubtitleApproval": "승인이 필요한 작업을 제어합니다",
+  "sheetSubtitleSandboxCodex": "안전을 위해 샌드박스가 기본으로 켜져 있습니다. 끄면 전체 시스템 액세스가 허용됩니다.",
+  "sheetSubtitleSandboxClaude": "Claude는 기본적으로 네이티브로 실행됩니다. 샌드박스를 켜면 액세스가 제한됩니다.",
+  "sheetSubtitleModel": "모델마다 속도, 성능, 비용이 다릅니다.",
+  "sheetSubtitleEffort": "Effort가 높을수록 더 철저히 분석하지만 시간이 더 걸립니다.",
+  "claudeEffortLowDesc": "더 빠른 응답, 덜 철저함",
+  "claudeEffortMediumDesc": "속도와 품질의 균형",
+  "claudeEffortHighDesc": "더 철저한 분석",
+  "claudeEffortMaxDesc": "가장 철저하지만 가장 느림",
+  "reasoningEffortMinimalDesc": "가장 빠름, 분석 최소",
+  "reasoningEffortLowDesc": "더 빠른 응답, 덜 철저함",
+  "reasoningEffortMediumDesc": "속도와 품질의 균형",
+  "reasoningEffortHighDesc": "더 철저한 분석",
+  "reasoningEffortXhighDesc": "가장 철저하지만 가장 느림",
+  "changePermissionModeTitle": "권한 모드 변경",
+  "changePermissionModeBody": "{mode}(으)로 전환하면 세션이 재시작됩니다. 대화는 유지됩니다.",
+  "@changePermissionModeBody": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "changeExecutionModeTitle": "실행 모드 변경",
+  "changeExecutionModeBody": "{mode}(으)로 전환하면 세션이 재시작됩니다. 대화는 유지됩니다.",
+  "@changeExecutionModeBody": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "changeApprovalPolicyTitle": "승인 정책 변경",
+  "changeApprovalPolicyBody": "{mode}(으)로 전환하면 세션이 재시작됩니다. 대화는 유지됩니다.",
+  "@changeApprovalPolicyBody": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "codexApprovalUntrustedDescription": "신뢰할 수 있는 명령만 자동 실행하고 나머지는 확인",
+  "codexApprovalOnRequestDescription": "에이전트가 승인이 필요하다고 판단할 때만 확인",
+  "codexApprovalOnFailureDescription": "먼저 묻지 않고 실행하고 명령 실패 시에만 확인(사용 중단 예정)",
+  "codexApprovalNeverDescription": "승인을 묻지 않고 실패는 즉시 반환",
+  "codexAutoReview": "자동 리뷰",
+  "codexAutoReviewDescription": "Codex가 승인 요청을 자동으로 검토",
+  "codexAutoReviewUnavailableDescription": "승인이 비활성화되어 있으면 사용할 수 없음",
+  "enablePlanModeTitle": "Plan Mode 활성화",
+  "disablePlanModeTitle": "Plan Mode 비활성화",
+  "enablePlanModeBody": "Plan Mode를 활성화하면 세션이 재시작됩니다. 대화는 유지됩니다.",
+  "disablePlanModeBody": "Plan Mode를 비활성화하면 세션이 재시작됩니다. 대화는 유지됩니다.",
+  "changeSandboxModeTitle": "샌드박스 모드 변경",
+  "changeSandboxModeBody": "{mode}(으)로 전환하면 세션이 재시작됩니다. 대화는 유지됩니다.",
+  "@changeSandboxModeBody": {
+    "placeholders": {
+      "mode": {
+        "type": "String"
+      }
+    }
+  },
+  "messagePlaceholder": "Claude에게 메시지...",
+  "diffLines": "diff {count}줄",
+  "changedLines": "{count, plural, =1{변경된 줄 {count}개} other{변경된 줄 {count}개}}",
+  "@changedLines": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "hunkCount": "{count, plural, =1{변경 블록 {count}개} other{변경 블록 {count}개}}",
+  "@hunkCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "fileCount": "{count, plural, =1{파일 {count}개} other{파일 {count}개}}",
+  "@fileCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "tapInterruptHoldStop": "탭: 중단, 길게 누르기: 정지",
+  "rewindToHere": "여기로 되돌리기",
+  "tapToRetry": "탭하여 재시도",
+  "diffSummaryAddedRemoved": "+{added}/-{removed}줄",
+  "lineCountSummary": "{count}줄",
+  "toolResult": "도구 결과",
+  "answered": "응답 완료",
+  "agentIsAsking": "{agent} 질문 중",
+  "@agentIsAsking": {
+    "placeholders": {
+      "agent": {}
+    }
+  },
+  "submitAllAnswers": "모든 답변 제출",
+  "submitWithCount": "제출({count}개 선택)",
+  "selectOptionsToSubmit": "제출할 옵션 선택",
+  "typeYourAnswer": "답변을 입력하세요...",
+  "orTypeCustomAnswer": "또는 직접 답변 입력...",
+  "otherAnswer": "기타 답변...",
+  "selectAllThatApply": "해당하는 항목 모두 선택",
+  "noScreenshotsYet": "아직 스크린샷 없음",
+  "screenshotButtonHint": "채팅 도구 모음의 스크린샷 버튼으로 캡처하세요.",
+  "screenshotsWillAppearHere": "Claude 세션의 스크린샷이 여기에 표시됩니다.",
+  "allWithCount": "전체 ({count})",
+  "noImages": "이미지 없음",
+  "failedToDeleteImage": "이미지 삭제 실패",
+  "failedToDownloadImage": "이미지 다운로드 실패",
+  "failedToShareImage": "이미지 공유 실패",
+  "deleteScreenshot": "스크린샷을 삭제할까요?",
+  "cannotBeUndone": "이 작업은 되돌릴 수 없습니다.",
+  "changes": "변경 사항",
+  "refresh": "새로고침",
+  "diffCompareSideBySide": "나란히",
+  "diffCompareSlider": "슬라이더",
+  "diffCompareOverlay": "오버레이",
+  "diffCompareToggle": "토글",
+  "diffBefore": "이전",
+  "diffAfter": "이후",
+  "diffNewFile": "새 파일",
+  "diffDeleted": "삭제됨",
+  "diffNoImage": "이미지 없음",
+  "noChanges": "변경 없음",
+  "showAll": "모두 보기",
+  "setupGuideTitle": "설정 가이드",
+  "guideAboutTitle": "CC Pocket이란?",
+  "guideAboutDescription": "Bridge Server를 통해 스마트폰에서 Codex와 Claude를 사용할 수 있는 모바일 클라이언트입니다.",
+  "guideAboutSdkNoteTitle": "Claude Agent SDK에 대해",
+  "guideAboutSdkNoteBody": "Claude Code의 라이브러리 버전입니다. .claude 및 CLAUDE.md 같은 기록과 프로젝트 설정 파일을 공유할 수 있으며 승인 흐름도 거의 동일합니다.",
+  "guideAboutDiagramTitle": "작동 방식",
+  "guideAboutDiagramPhone": "iPhone",
+  "guideAboutDiagramBridge": "Bridge 서버",
+  "guideAboutDiagramClaude": "Codex CLI\n/ Claude Agent SDK",
+  "guideAboutDiagramCaption": "PC의 Bridge 서버가 Codex CLI와 Claude Agent SDK에 연결되고,\n휴대폰은 Bridge에 연결됩니다.",
+  "guideBridgeTitle": "Bridge 서버\n설정",
+  "guideBridgeDescription": "PC에서 Bridge 서버를 시작하세요. Claude를 사용하려면 ANTHROPIC_API_KEY도 설정하세요.",
+  "guideBridgePrerequisites": "필수 조건",
+  "guideBridgePrereq1": "Node.js가 설치된 Mac / PC",
+  "guideBridgePrereq2": "Claude를 사용한다면 ANTHROPIC_API_KEY 설정",
+  "guideBridgePrereq3": "Codex를 사용한다면 Codex 인증 완료",
+  "guideBridgeStep1": "npx로 실행(권장)",
+  "guideBridgeStep1Command": "npx --yes @ccpocket/bridge@latest",
+  "guideBridgeStep2": "또는 전역 설치",
+  "guideBridgeStep2Command": "npm install -g @ccpocket/bridge\nccpocket-bridge",
+  "guideBridgeQrNote": "시작하면 터미널에 QR 코드가 표시됩니다",
+  "guideConnectionTitle": "연결 방법",
+  "guideConnectionDescription": "같은 Wi-Fi 네트워크에 있으면 바로 연결할 수 있습니다.",
+  "guideConnectionQr": "QR 코드 스캔",
+  "guideConnectionQrDescription": "터미널에 표시된 QR 코드를 스캔하세요. 가장 쉬운 방법입니다.",
+  "guideConnectionMdns": "자동 검색(mDNS)",
+  "guideConnectionMdnsDescription": "같은 LAN의 Bridge 서버를 자동으로 찾습니다.",
+  "guideConnectionManual": "수동 입력",
+  "guideConnectionManualDescription": "ws://<IP address>:8765 형식으로 직접 입력합니다.",
+  "guideConnectionRecommended": "권장",
+  "guideTailscaleTitle": "원격 접속",
+  "guideTailscaleDescription": "집 밖에서 사용하려면 Tailscale(VPN)로 안전하게 원격 연결할 수 있습니다.",
+  "guideTailscaleStep1": "Mac과 iPhone 모두에 Tailscale 설치",
+  "guideTailscaleStep2": "같은 계정으로 로그인",
+  "guideTailscaleStep3": "Bridge URL에 Tailscale IP 사용\n(예: ws://100.x.x.x:8765)",
+  "guideTailscaleWebsite": "Tailscale 웹사이트",
+  "guideTailscaleWebsiteHint": "자세한 설정 방법은 공식 사이트를 확인하세요.",
+  "guideLaunchdTitle": "자동 시작 설정",
+  "guideLaunchdDescription": "Bridge 서버를 매번 직접 시작하기 번거롭다면 컴퓨터 부팅 시 자동으로 시작되도록 설정할 수 있습니다.",
+  "guideLaunchdCommand": "설정 명령",
+  "guideLaunchdCommandValue": "npx --yes @ccpocket/bridge@latest setup",
+  "guideLaunchdRecommendation": "먼저 수동 시작으로 확인한 뒤 안정되면 서비스로 등록하는 것을 권장합니다.",
+  "guideAutostartMacDescription": "launchd에 등록합니다. 셸 환경(nvm, Homebrew 등)이 자동으로 상속됩니다.",
+  "guideAutostartLinuxDescription": "systemd 사용자 서비스를 만듭니다. Raspberry Pi 및 다른 Linux 호스트에서 작동합니다.",
+  "guideReadyTitle": "준비 완료!",
+  "guideReadyDescription": "Bridge 서버를 시작하고\nQR 코드를 스캔하여\n시작하세요.",
+  "guideReadyStart": "시작하기",
+  "guideReadyHint": "이 가이드는 설정에서 언제든 다시 볼 수 있습니다.",
+  "creatingSession": "세션 생성 중...",
+  "copyForAgent": "에이전트용 복사",
+  "messageHistory": "메시지 기록",
+  "viewChanges": "변경 사항 보기",
+  "screenshot": "스크린샷",
+  "debug": "디버그",
+  "logs": "로그",
+  "viewApplicationLogs": "애플리케이션 로그 보기",
+  "mockPreview": "모의 미리보기",
+  "viewMockChatScenarios": "모의 채팅 시나리오 보기",
+  "updateTrack": "업데이트 트랙",
+  "updateTrackDescription": "변경 적용을 위해 앱을 재시작하세요",
+  "updateTrackStable": "Stable",
+  "updateTrackStaging": "Staging",
+  "updateDownloaded": "업데이트가 다운로드되었습니다. 적용하려면 앱을 재시작하세요.",
+  "promptHistory": "프롬프트 기록",
+  "frequent": "자주 사용",
+  "recent": "최근",
+  "searchHint": "검색...",
+  "noMatchingPrompts": "일치하는 프롬프트 없음",
+  "noPromptHistoryYet": "아직 프롬프트 기록 없음",
+  "approvalQueue": "승인 대기열",
+  "resetQueue": "대기열 초기화",
+  "swipeSkip": "건너뛰기",
+  "swipeSend": "보내기",
+  "swipeDismiss": "닫기",
+  "swipeApprove": "승인",
+  "swipeReject": "거부",
+  "allClear": "모두 완료!",
+  "itemsProcessed": "{count}개 처리됨",
+  "bestStreak": "최고 연속 기록: {count}",
+  "tryAgain": "다시 시도",
+  "waitingForTasks": "작업 대기 중",
+  "agentReadyForPrompt": "에이전트가 다음 프롬프트를 기다리고 있습니다.",
+  "backToSessions": "세션으로 돌아가기",
+  "working": "작업 중...",
+  "waitingForApprovalRequests": "에이전트의 승인 요청을 기다리는 중입니다.",
+  "noActiveSessions": "활성 세션 없음",
+  "startSessionToBegin": "승인 요청을 받으려면 세션을 시작하세요.",
+  "settingsTitle": "설정",
+  "sectionGeneral": "일반",
+  "sectionConnectionAccounts": "연결 및 계정",
+  "sectionNotifications": "알림",
+  "sectionSupport": "후원",
+  "sectionEditor": "편집기",
+  "textDensity": "텍스트 밀도",
+  "textDensityDescription": "시스템 텍스트 크기에 앱 배율을 곱합니다. 100%는 OS 설정을 그대로 유지합니다.",
+  "indentSize": "들여쓰기 크기",
+  "indentSizeSubtitle": "목록 들여쓰기 공백 수",
+  "gitDiffInteractionMode": "Git diff 제스처",
+  "gitDiffQuickActions": "빠른 작업",
+  "gitDiffQuickActionsDescription": "한 손가락으로 가로 스와이프해 변경 블록을 stage, unstage 또는 revert합니다. 긴 줄은 줄바꿈됩니다.",
+  "gitDiffScrollFirst": "먼저 스크롤",
+  "gitDiffScrollFirstDescription": "변경 블록 단위로 가로 스크롤할 수 있도록 긴 줄은 줄바꿈하지 않습니다. Git 작업은 길게 누르기 메뉴나 하단 버튼을 사용하세요.",
+  "sectionAbout": "정보",
+  "theme": "테마",
+  "themeSystem": "시스템",
+  "themeLight": "라이트",
+  "themeDark": "다크",
+  "appIconTitle": "앱 아이콘",
+  "appIconMonthlySupporterPerk": "월간 Supporter 혜택입니다.",
+  "appIconSupporterDialogTitle": "월간 Supporter 혜택",
+  "appIconSupporterSectionLabel": "월간 Supporter 혜택",
+  "appIconPickerTitle": "앱 아이콘 선택",
+  "appIconPickerSubtitle": "홈 화면에 표시할 아이콘을 선택하세요.",
+  "appIconOptionDefaultTitle": "다크",
+  "appIconOptionDefaultSubtitle": "표준 CC Pocket 아이콘입니다.",
+  "appIconOptionLightOutlineTitle": "라이트",
+  "appIconOptionLightOutlineSubtitle": "밝은 외곽선이 있는 더 밝은 변형입니다.",
+  "appIconOptionCopperEmeraldTitle": "메탈릭",
+  "appIconOptionCopperEmeraldSubtitle": "광택 마감의 특별 에디션입니다.",
+  "language": "언어",
+  "languageSystem": "시스템 기본값",
+  "voiceInput": "음성 입력",
+  "pushNotifications": "푸시 알림",
+  "pushNotificationsSubtitle": "Bridge를 통해 세션 알림 받기",
+  "pushNotificationsUnavailable": "Firebase 설정 후 사용 가능",
+  "version": "버전",
+  "loading": "로딩 중...",
+  "setupGuideSubtitle": "처음이라면 여기서 시작하세요",
+  "openSourceLicenses": "오픈소스 라이선스",
+  "githubRepository": "GitHub 저장소",
+  "changelog": "변경 로그",
+  "changelogTitle": "변경 로그",
+  "showAllMain": "모두 보기(main)",
+  "changelogFetchError": "변경 로그를 불러오지 못했습니다",
+  "fcmBridgeNotInitialized": "Bridge가 초기화되지 않음",
+  "fcmTokenFailed": "FCM 토큰을 가져오지 못했습니다",
+  "fcmEnabled": "알림 활성화됨",
+  "fcmEnabledPending": "Bridge 재연결 후 등록됩니다",
+  "fcmDisabled": "알림 비활성화됨",
+  "fcmDisabledPending": "Bridge 재연결 후 등록 해제됩니다",
+  "pushPrivacyMode": "개인정보 보호 모드",
+  "pushPrivacyModeSubtitle": "알림에서 프로젝트 이름과 내용을 숨깁니다",
+  "updateNotificationLanguage": "알림 언어 업데이트",
+  "notificationLanguageUpdated": "알림 언어가 업데이트됨",
+  "defaultNotRecommended": "기본값(권장하지 않음)",
+  "imageAttached": "이미지 첨부됨",
+  "sectionBackup": "백업",
+  "backupPromptHistory": "프롬프트 기록 백업",
+  "restorePromptHistory": "프롬프트 기록 복원",
+  "backupSuccess": "백업 완료",
+  "backupFailed": "백업 실패: {error}",
+  "@backupFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreSuccess": "복원 완료",
+  "restoreFailed": "복원 실패: {error}",
+  "@restoreFailed": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "restoreConfirmTitle": "프롬프트 기록 복원",
+  "restoreConfirmMessage": "모든 로컬 프롬프트 기록이 백업으로 대체됩니다. 이 작업은 되돌릴 수 없습니다.",
+  "restoreConfirmButton": "복원",
+  "noBackupFound": "백업 없음",
+  "backupInfo": "마지막 백업: {date}",
+  "@backupInfo": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "backupVersionInfo": "v{version} · {size}",
+  "@backupVersionInfo": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
+  "connectToBackup": "백업을 사용하려면 Bridge에 연결하세요",
+  "usageConnectToView": "사용량을 보려면 Bridge에 연결하세요",
+  "usageFetchFailed": "가져오기 실패",
+  "usageFiveHour": "5시간",
+  "usageSevenDay": "7일",
+  "settingsUsageSectionTitle": "사용량",
+  "settingsUsageNoCodexData": "Codex 사용량 데이터를 찾을 수 없습니다.",
+  "usageDisplayModeRemaining": "남은 양",
+  "usageDisplayModeUsed": "사용량",
+  "settingsClaudeUsageDescription": "브라우저에서 Claude 공식 결제 페이지를 엽니다.",
+  "settingsClaudeApiBilling": "API 키 결제",
+  "settingsClaudeSubscriptionUsage": "구독 사용량",
+  "settingsNewSessionTabs": "새 세션 탭",
+  "settingsNewSessionTabsDescription": "새 세션에 표시할 AI 도구와 순서를 선택하세요.",
+  "newSessionTabCodex": "Codex",
+  "newSessionTabClaudeCode": "Claude",
+  "usageResetAt": "초기화: {time}",
+  "@usageResetAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "usageAlreadyReset": "이미 초기화됨",
+  "attachedImages": "첨부 이미지 ({count})",
+  "@attachedImages": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "attachedImagesNoCount": "첨부 이미지",
+  "failedToFetchImages": "이미지를 가져올 수 없음",
+  "responseTimedOut": "응답 시간 초과",
+  "failedToFetchImagesWithError": "이미지 가져오기 실패: {error}",
+  "@failedToFetchImagesWithError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "retry": "재시도",
+  "clipboardNotAvailable": "클립보드를 사용할 수 없습니다",
+  "failedToLoadImage": "이미지 로드 실패",
+  "noImageInClipboard": "클립보드에 이미지가 없습니다",
+  "failedToReadClipboard": "클립보드 읽기 실패",
+  "imageLimitReached": "최대 {max}개 이미지까지 허용됩니다",
+  "@imageLimitReached": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      }
+    }
+  },
+  "imageLimitTruncated": "처음 {max}개 이미지만 첨부됨({dropped}개 제외)",
+  "@imageLimitTruncated": {
+    "placeholders": {
+      "max": {
+        "type": "int"
+      },
+      "dropped": {
+        "type": "int"
+      }
+    }
+  },
+  "selectFromGallery": "갤러리에서 선택",
+  "pasteFromClipboard": "클립보드에서 붙여넣기",
+  "voiceInputLanguage": "음성 입력 언어",
+  "hideVoiceInput": "음성 입력 버튼 숨기기",
+  "hideVoiceInputSubtitle": "타사 음성 입력 키보드를 사용할 때 유용합니다",
+  "archive": "보관",
+  "archiveConfirm": "이 세션을 보관할까요?",
+  "archiveConfirmMessage": "이 세션은 목록에서 숨겨집니다. Claude Code에서는 계속 열 수 있습니다.",
+  "sessionArchived": "세션이 보관됨",
+  "archiveFailed": "세션 보관 실패",
+  "archiveFailedWithError": "세션 보관 실패: {error}",
+  "@archiveFailedWithError": {
+    "placeholders": {
+      "error": {
+        "type": "String"
+      }
+    }
+  },
+  "noRecentSessions": "최근 세션 없음",
+  "noSessionsMatchFilters": "현재 필터와 일치하는 세션 없음",
+  "adjustFiltersAndSearch": "필터나 검색어를 변경해 보세요",
+  "tooltipDisplayMode": "카드에 표시할 메시지 변경",
+  "tooltipProviderFilter": "AI 도구로 필터",
+  "tooltipProjectFilter": "프로젝트로 필터",
+  "tooltipNamedOnly": "이름을 붙인 세션만",
+  "tooltipIndent": "들여쓰기 증가",
+  "tooltipDedent": "들여쓰기 감소",
+  "tooltipSlashCommand": "명령 또는 스킬 삽입",
+  "tooltipMention": "파일 또는 플러그인 멘션",
+  "tooltipDollarMention": "스킬 또는 앱 삽입",
+  "tooltipPermissionMode": "권한 모드",
+  "tooltipAttachImage": "이미지 첨부",
+  "tooltipPromptHistory": "프롬프트 기록 열기",
+  "tooltipVoiceInput": "음성 입력 시작",
+  "tooltipStopRecording": "녹음 중지",
+  "tooltipSendMessage": "메시지 보내기",
+  "tooltipRemoveImage": "이미지 제거",
+  "tooltipClearDiff": "diff 선택 지우기",
+  "showMore": "더 보기",
+  "showLess": "접기",
+  "authErrorTitle": "Claude 로그인이 필요합니다",
+  "authErrorBody": "Bridge 컴퓨터에서 Claude에 다시 로그인해야 합니다.",
+  "authErrorPrimaryCommandLabel": "1단계",
+  "authErrorSecondaryCommandLabel": "2단계",
+  "authErrorAlternativeLabel": "셸 대안",
+  "apiKeyRequiredTitle": "API 키 필요",
+  "apiKeyRequiredBody": "Anthropic의 현재 Claude Agent SDK 문서는 타사 제품의 Claude 구독 로그인을 허용하지 않습니다. 대신 API 키를 사용하세요.",
+  "apiKeyRequiredHint": "API 키 받기:",
+  "authHelpTitle": "인증 문제 해결",
+  "authHelpFetchError": "문제 해결 가이드를 불러오지 못했습니다",
+  "authHelpButton": "단계 보기",
+  "authHelpLanguageJa": "日本語",
+  "authHelpLanguageEn": "English",
+  "authHelpLanguageZhHans": "简体中文",
+  "authHelpLanguageKo": "한국어",
+  "terminalApp": "터미널 앱",
+  "terminalAppSubtitle": "외부 터미널 앱에서 프로젝트 열기",
+  "terminalAppNone": "설정되지 않음",
+  "terminalAppCustom": "사용자 지정",
+  "terminalAppName": "앱 이름",
+  "terminalUrlTemplate": "URL 템플릿",
+  "terminalUrlTemplateHint": "변수: host, user, port, project_path",
+  "terminalSshUser": "SSH 사용자",
+  "terminalSshUserHint": "기본값은 컴퓨터의 SSH 사용자",
+  "openInTerminal": "터미널에서 열기",
+  "terminalAppNotInstalled": "터미널 앱을 열 수 없습니다",
+  "terminalAppExperimental": "미리보기",
+  "terminalAppExperimentalNote": "이 기능은 미리보기입니다. 프리셋이 모든 앱이나 구성에서 작동하지 않을 수 있습니다. 새 프리셋 기여는 GitHub에서 환영합니다!",
+  "sectionSpread": "CC Pocket이 마음에 드시나요?",
+  "spreadAppealMessage": "CC Pocket은 아직 사용자층이 작아, 더 많은 사용자 없이는 지속적인 개발이 어렵습니다. 마음에 드신다면 스토어 평점이나 지인에게 공유해 주시면 큰 도움이 됩니다.",
+  "shareApp": "친구와 공유",
+  "shareAppSubtitle": "친구와 동료에게 알려주세요",
+  "shareText": "CC Pocket: Claude & Codex\n휴대폰에서 코딩 에이전트를 제어하세요 📱\n#ccpocket\n{url}",
+  "@shareText": {
+    "placeholders": {
+      "url": {
+        "type": "String"
+      }
+    }
+  },
+  "starOnGithub": "GitHub에서 Star",
+  "rateOnStore": "App Store에서 평가",
+  "rateOnStoreAndroid": "Google Play에서 평가",
+  "supporterTitle": "Supporter",
+  "supporterMonthlyTitle": "월간 Supporter",
+  "supporterCoffeeTitle": "음료 한 잔 후원",
+  "supporterLunchTitle": "점심 후원",
+  "supporterStatusActive": "CC Pocket을 후원해 주셔서 감사합니다.",
+  "supporterStatusInactive": "CC Pocket은 계속 무료로 사용할 수 있습니다. 여기에서 지속적인 개발을 후원할 수 있습니다.",
+  "supporterStatusLoading": "Supporter 상태 확인 중...",
+  "supportEntryInactiveTitle": "후원",
+  "supportEntryInactiveSubtitle": "CC Pocket이 유용했다면 지속적인 개발을 후원해 주세요.",
+  "supportEntryOneTimeTitle": "후원해 주셔서 감사합니다",
+  "supportEntryOneTimeSubtitle": "CC Pocket을 후원해 주셔서 감사합니다.",
+  "supportEntryActiveTitle": "후원 중",
+  "supportEntryActiveSubtitle": "{date}부터 CC Pocket을 후원 중입니다.",
+  "@supportEntryActiveSubtitle": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "supporterMonthlyDescription": "앱을 계속 개선하기 위한 정기 후원입니다.",
+  "supporterMonthlyPerkLabel": "대체 앱 아이콘 혜택 포함",
+  "supporterCoffeeDescription": "음료 한 잔을 사주고 싶은 마음이라면 큰 힘이 됩니다.",
+  "supporterLunchDescription": "점심 한 끼를 사주고 싶은 마음이라면 큰 힘이 됩니다.",
+  "supporterBuyButton": "후원하기",
+  "supporterActiveButton": "활성",
+  "supporterRestoreButton": "복원",
+  "supporterRetryButton": "재시도",
+  "supporterProductsUnavailable": "현재 사용할 수 있는 후원 옵션이 없습니다.",
+  "supporterRestoreNoticeTitle": "복원 안내",
+  "supporterRestoreNoticeBody": "복원은 같은 Apple ID 또는 Google 계정에서 작동합니다. Supporter 상태는 iOS와 Android 간에 공유되지 않습니다.",
+  "supporterSummaryTitle": "후원 요약",
+  "supporterSummarySinceChip": "{date}부터",
+  "@supporterSummarySinceChip": {
+    "placeholders": {
+      "date": {
+        "type": "String"
+      }
+    }
+  },
+  "supporterSummaryStreakChip": "연속: {duration}",
+  "@supporterSummaryStreakChip": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
+  "supporterSummaryOneTimeCount": "일회성 ×{count}",
+  "@supporterSummaryOneTimeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "supporterSummaryCoffeeCount": "음료 ×{count}",
+  "@supporterSummaryCoffeeCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "supporterSummaryLunchCount": "점심 ×{count}",
+  "@supporterSummaryLunchCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "supporterSummaryLessThanMonth": "1개월 미만",
+  "supporterSummaryDurationMonths": "{count, plural, =1{1개월} other{{count}개월}}",
+  "@supporterSummaryDurationMonths": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "supporterSummarySinceLabel": "시작",
+  "supporterSummaryStreakLabel": "후원 기간",
+  "supporterSummaryOngoingLabel": "후원 중",
+  "supporterSummarySupportPeriodLabel": "후원 기간",
+  "supporterImpactTitle": "후원으로 가능해지는 것",
+  "supporterImpactBody": "CC Pocket이 마음에 드신다면 지속적인 개발을 후원해 주시면 감사하겠습니다. 앱은 계속 무료 OSS로 유지됩니다.",
+  "supporterImpactAiTitle": "개발 및 운영 비용",
+  "supporterImpactAiBody": "AI 사용량, 기기 확인, 테스트, 배포에는 지속적인 비용이 듭니다.",
+  "supporterImpactDevicesTitle": "기기 테스트",
+  "supporterImpactDevicesBody": "휴대폰, 태블릿, 플랫폼 업데이트 전반에서 앱을 안정적으로 유지합니다.",
+  "supporterImpactMotivationTitle": "계속 만들 수 있는 동력",
+  "supporterImpactMotivationBody": "앱이 유용하다는 사실은 새 기능과 개선을 계속 배포하는 데 큰 힘이 됩니다.",
+  "supporterPackagesTitle": "후원 방법 선택",
+  "supporterSubscriptionGroupTitle": "월간 후원",
+  "supporterSubscriptionGroupBody": "지속적으로 후원해 주시면 정말 감사하겠습니다.",
+  "supporterOneTimeGroupTitle": "일회성 후원",
+  "supporterOneTimeGroupBody": "점심 한 끼나 음료 한 잔을 사주고 싶은 마음이라면 큰 힘이 됩니다.",
+  "supporterPurchaseInfoTitle": "구매 안내",
+  "supporterPurchaseInfoBody": "복원은 같은 Apple ID 또는 Google 계정에서 작동합니다. Supporter 상태는 iOS와 Android 간에 공유되지 않습니다.",
+  "supporterPurchaseInfoLink": "자세히 보기",
+  "supporterPrivacyPolicyLink": "개인정보 처리방침",
+  "supporterTermsOfUseLink": "이용 약관(Apple 표준 EULA)",
+  "supporterLearnMoreTitle": "구매와 후원 안내",
+  "supporterLearnMoreBody": "CC Pocket이 무료로 유지되는 이유, 복원 방식, Supporter 포함 내용을 확인하세요.",
+  "supporterOpenLinkFailed": "안내 페이지를 열 수 없습니다.",
+  "supporterPurchaseSuccess": "CC Pocket을 후원해 주셔서 감사합니다!",
+  "supporterPurchaseCancelled": "구매가 취소되었습니다.",
+  "supporterPurchaseFailed": "구매 실패: {message}",
+  "@supporterPurchaseFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  },
+  "supporterRestoreSuccess": "구매 정보를 복원했습니다.",
+  "supporterRestoreFailed": "복원 실패: {message}",
+  "@supporterRestoreFailed": {
+    "placeholders": {
+      "message": {
+        "type": "String"
+      }
+    }
+  }
+}

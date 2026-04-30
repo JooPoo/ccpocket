@@ -1,4 +1,4 @@
-export type PushLocale = "en" | "ja" | "zh";
+export type PushLocale = "en" | "ja" | "zh" | "ko";
 
 const translations: Record<PushLocale, Record<string, string>> = {
   en: {
@@ -52,9 +52,26 @@ const translations: Record<PushLocale, Record<string, string>> = {
     result_success_body_private: "会话已完成",
     result_error_body_private: "会话失败",
   },
+  ko: {
+    approval_title: "승인 필요",
+    ask_title: "응답 필요",
+    plan_ready_title: "계획 준비 완료",
+    approval_body: "{toolName} 실행을 승인하세요",
+    plan_ready_body: "계획이 준비되었습니다. 검토해 주세요.",
+    ask_default_body: "Claude가 질문하고 있습니다",
+    task_completed: "작업 완료",
+    error_occurred: "오류 발생",
+    session_completed: "세션 완료",
+    session_failed: "세션 실패",
+    // Privacy mode
+    approval_body_private: "도구 실행을 승인하세요",
+    ask_body_private: "질문에 응답해 주세요",
+    result_success_body_private: "세션 완료",
+    result_error_body_private: "세션 실패",
+  },
 };
 
-const SUPPORTED_LOCALES = new Set<string>(["en", "ja", "zh"]);
+const SUPPORTED_LOCALES = new Set<string>(["en", "ja", "zh", "ko"]);
 
 export function normalizePushLocale(locale: string | undefined): PushLocale {
   if (!locale) return "en";

@@ -6,12 +6,13 @@ import '../../../widgets/workspace_pane_chrome.dart';
 
 /// Available app display locales.
 /// id is empty string for system default, otherwise a language code
-/// (e.g. 'ja', 'en', 'zh').
+/// (e.g. 'ja', 'en', 'zh', 'ko').
 const appLocales = <(String id, String label, String? subtitle)>[
   ('', '', null), // System default — label resolved via l10n
   ('ja', '日本語', 'Japanese'),
   ('en', 'English', null),
   ('zh', '简体中文', 'Simplified Chinese'),
+  ('ko', '한국어', 'Korean'),
 ];
 
 /// Shows a bottom sheet for selecting the app display locale.
