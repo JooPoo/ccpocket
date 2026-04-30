@@ -5,6 +5,8 @@ import 'package:ccpocket/theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'helpers/bridge_version_test_values.dart';
+
 Widget _wrap(Widget child) {
   return MaterialApp(
     localizationsDelegates: AppLocalizations.localizationsDelegates,
@@ -81,7 +83,11 @@ void main() {
     testWidgets('shows update menu only for online old bridge with SSH', (
       tester,
     ) async {
-      await _pumpCard(tester, status: MachineStatus.offline, version: '1.46.0');
+      await _pumpCard(
+        tester,
+        status: MachineStatus.offline,
+        version: olderThanRecommendedBridgeVersion,
+      );
 
       await tester.tap(find.byKey(const ValueKey('machine_menu_m1')));
       await tester.pumpAndSettle();
@@ -91,7 +97,11 @@ void main() {
       await tester.tapAt(Offset.zero);
       await tester.pumpAndSettle();
 
-      await _pumpCard(tester, status: MachineStatus.online, version: '1.46.0');
+      await _pumpCard(
+        tester,
+        status: MachineStatus.online,
+        version: olderThanRecommendedBridgeVersion,
+      );
 
       await tester.tap(find.byKey(const ValueKey('machine_menu_m1')));
       await tester.pumpAndSettle();
@@ -104,7 +114,11 @@ void main() {
     testWidgets('shows update button for online old bridge with SSH', (
       tester,
     ) async {
-      await _pumpCard(tester, status: MachineStatus.online, version: '1.46.0');
+      await _pumpCard(
+        tester,
+        status: MachineStatus.online,
+        version: olderThanRecommendedBridgeVersion,
+      );
 
       expect(
         find.byKey(const ValueKey('machine_update_bridge_button')),
@@ -114,12 +128,12 @@ void main() {
     });
 
     testWidgets(
-      'hides update button for latest, offline, missing SSH, or unknown version',
+      'hides update button for recommended, offline, missing SSH, or unknown version',
       (tester) async {
         await _pumpCard(
           tester,
           status: MachineStatus.online,
-          version: '1.47.2',
+          version: recommendedBridgeVersion,
         );
         expect(
           find.byKey(const ValueKey('machine_update_bridge_button')),
@@ -129,7 +143,7 @@ void main() {
         await _pumpCard(
           tester,
           status: MachineStatus.offline,
-          version: '1.46.0',
+          version: olderThanRecommendedBridgeVersion,
         );
         expect(
           find.byKey(const ValueKey('machine_update_bridge_button')),
@@ -139,7 +153,7 @@ void main() {
         await _pumpCard(
           tester,
           status: MachineStatus.online,
-          version: '1.46.0',
+          version: olderThanRecommendedBridgeVersion,
           sshEnabled: false,
           sshUsername: null,
         );

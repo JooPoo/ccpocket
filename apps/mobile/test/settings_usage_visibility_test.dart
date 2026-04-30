@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:ccpocket/constants/app_constants.dart';
 import 'package:ccpocket/features/settings/settings_screen.dart';
 import 'package:ccpocket/features/settings/state/settings_cubit.dart';
 import 'package:ccpocket/features/settings/state/settings_state.dart';
@@ -23,6 +22,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers/bridge_version_test_values.dart';
 
 class _FakeBridgeService extends BridgeService {
   final _connectionController =
@@ -310,7 +311,7 @@ void main() {
           activeMachineId: 'machine-1',
         );
         final machineManagerService = _StaticMachineManagerService([
-          const MachineWithStatus(
+          MachineWithStatus(
             machine: Machine(
               id: 'machine-1',
               name: 'Remote Mac',
@@ -319,7 +320,9 @@ void main() {
               sshUsername: 'k9i',
             ),
             status: MachineStatus.online,
-            versionInfo: BridgeVersionInfo(version: '1.46.0'),
+            versionInfo: BridgeVersionInfo(
+              version: olderThanRecommendedBridgeVersion,
+            ),
           ),
         ]);
         final machineManagerCubit = MachineManagerCubit(
@@ -364,7 +367,7 @@ void main() {
         activeMachineId: 'machine-1',
       );
       final latestService = _StaticMachineManagerService([
-        const MachineWithStatus(
+        MachineWithStatus(
           machine: Machine(
             id: 'machine-1',
             name: 'Remote Mac',
@@ -373,9 +376,7 @@ void main() {
             sshUsername: 'k9i',
           ),
           status: MachineStatus.online,
-          versionInfo: BridgeVersionInfo(
-            version: AppConstants.expectedBridgeVersion,
-          ),
+          versionInfo: BridgeVersionInfo(version: recommendedBridgeVersion),
         ),
       ]);
       final latestCubit = MachineManagerCubit(latestService, null);
@@ -410,7 +411,7 @@ void main() {
         activeMachineId: 'machine-1',
       );
       final missingSshService = _StaticMachineManagerService([
-        const MachineWithStatus(
+        MachineWithStatus(
           machine: Machine(
             id: 'machine-1',
             name: 'Remote Mac',
@@ -418,7 +419,9 @@ void main() {
             sshEnabled: false,
           ),
           status: MachineStatus.online,
-          versionInfo: BridgeVersionInfo(version: '1.46.0'),
+          versionInfo: BridgeVersionInfo(
+            version: olderThanRecommendedBridgeVersion,
+          ),
         ),
       ]);
       final missingSshCubit = MachineManagerCubit(missingSshService, null);

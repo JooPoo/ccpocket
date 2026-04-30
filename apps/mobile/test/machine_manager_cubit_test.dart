@@ -1,11 +1,12 @@
 import 'dart:async';
 
-import 'package:ccpocket/constants/app_constants.dart';
 import 'package:ccpocket/models/machine.dart';
 import 'package:ccpocket/providers/machine_manager_cubit.dart';
 import 'package:ccpocket/services/machine_manager_service.dart';
 import 'package:ccpocket/services/ssh_startup_service.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'helpers/bridge_version_test_values.dart';
 
 /// Minimal mock for MachineManagerService.
 class MockMachineManagerService implements MachineManagerService {
@@ -547,9 +548,7 @@ void main() {
         MachineWithStatus(
           machine: Machine(id: 'm1', host: '10.0.0.1'),
           status: MachineStatus.online,
-          versionInfo: BridgeVersionInfo(
-            version: AppConstants.expectedBridgeVersion,
-          ),
+          versionInfo: BridgeVersionInfo(version: recommendedBridgeVersion),
         ),
       ];
       final cubit = createCubit();
@@ -602,10 +601,12 @@ void main() {
 
     test('fails when refreshed version is still older than expected', () async {
       mockService.machineStatuses = [
-        const MachineWithStatus(
+        MachineWithStatus(
           machine: Machine(id: 'm1', host: '10.0.0.1'),
           status: MachineStatus.online,
-          versionInfo: BridgeVersionInfo(version: '1.46.0'),
+          versionInfo: BridgeVersionInfo(
+            version: olderThanRecommendedBridgeVersion,
+          ),
         ),
       ];
       final cubit = createCubit();
