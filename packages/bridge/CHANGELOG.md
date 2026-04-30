@@ -2,6 +2,11 @@
 
 All notable changes to `@ccpocket/bridge` will be documented in this file.
 
+## [1.47.2] - 2026-04-30
+
+### Changed
+- Publish a patch release to verify remote Bridge update flow from CC Pocket.
+
 ## [1.47.1] - 2026-04-30
 
 ### Fixed
