@@ -88,7 +88,7 @@ abstract class SettingsState with _$SettingsState {
     @Default(UsageDisplayMode.remaining) UsageDisplayMode usageDisplayMode,
 
     /// Whether new sessions should be automatically named after the first turn.
-    @Default(false) bool autoRenameSessions,
+    @Default(true) bool autoRenameSessions,
   }) = _SettingsState;
 
   /// Whether push notifications are enabled for the currently connected machine.

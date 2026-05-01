@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import type { ServerMessage } from "./parser.js";
+import type { Provider, ServerMessage } from "./parser.js";
 import { CODEX_ASSIST_MODEL } from "./codex-assist.js";
 
 const AUTO_RENAME_PROMPT = `Write a concise name for this coding-agent session.
@@ -23,6 +23,13 @@ const MAX_NAME_CHARS = 60;
 export interface AutoRenameTranscript {
   userText: string;
   assistantText?: string;
+}
+
+export interface AutoRenameOptions {
+  provider: Provider;
+  projectPath: string;
+  model?: string;
+  transcript: AutoRenameTranscript;
 }
 
 export function buildAutoRenameTranscript(
@@ -97,9 +104,26 @@ export function sanitizeAutoRenameName(output: string): string | null {
 }
 
 export function generateAutoRenameName(
-  projectPath: string,
-  transcript: AutoRenameTranscript,
+  options: AutoRenameOptions,
 ): string | null {
+  const cwd = resolve(options.projectPath);
+  const prompt = buildAutoRenamePrompt(options.transcript);
+  const output =
+    options.provider === "codex"
+      ? runCodexAutoRename(cwd, prompt)
+      : execFileSync(
+          "claude",
+          ["-p", ...(options.model ? ["--model", options.model] : []), prompt],
+          {
+            cwd,
+            encoding: "utf-8",
+            maxBuffer: 1024 * 1024,
+          },
+        );
+  return sanitizeAutoRenameName(output);
+}
+
+function runCodexAutoRename(cwd: string, prompt: string): string {
   const outputDir = mkdtempSync(join(tmpdir(), "ccpocket-auto-rename-"));
   const outputPath = join(outputDir, "session-name.txt");
 
@@ -108,13 +132,13 @@ export function generateAutoRenameName(
       "codex",
       ["exec", "-m", CODEX_ASSIST_MODEL, "-o", outputPath, "-"],
       {
-        cwd: resolve(projectPath),
+        cwd,
         encoding: "utf-8",
-        input: buildAutoRenamePrompt(transcript),
+        input: prompt,
         maxBuffer: 1024 * 1024,
       },
     );
-    return sanitizeAutoRenameName(readFileSync(outputPath, "utf-8"));
+    return readFileSync(outputPath, "utf-8");
   } finally {
     rmSync(outputDir, { recursive: true, force: true });
   }

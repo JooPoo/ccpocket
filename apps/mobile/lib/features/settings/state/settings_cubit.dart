@@ -183,7 +183,7 @@ class SettingsCubit extends Cubit<SettingsState> {
     final usageDisplayMode = _usageDisplayModeFromRaw(
       prefs.getString(_keyUsageDisplayMode),
     );
-    final autoRenameSessions = prefs.getBool(_keyAutoRenameSessions) ?? false;
+    final autoRenameSessions = prefs.getBool(_keyAutoRenameSessions) ?? true;
 
     // Load terminal app config
     var terminalApp = TerminalAppConfig.empty;

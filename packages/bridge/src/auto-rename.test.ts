@@ -101,12 +101,48 @@ describe("auto rename", () => {
     expect(sanitizeAutoRenameName("name: 未プッシュ差分レビュー")).toBeNull();
   });
 
-  it("uses the Codex mini model and returns the sanitized name", () => {
+  it("uses the Claude CLI for Claude sessions", () => {
+    execFileSyncMock.mockReturnValue("`依存関係更新`\n");
+
+    const name = generateAutoRenameName({
+      provider: "claude",
+      projectPath: "/tmp/project",
+      model: "claude-haiku-4-6",
+      transcript: {
+        userText: "依存関係を更新して",
+        assistantText: "pubspecを確認します。",
+      },
+    });
+
+    expect(name).toBe("依存関係更新");
+    expect(execFileSyncMock).toHaveBeenCalledWith(
+      "claude",
+      [
+        "-p",
+        "--model",
+        "claude-haiku-4-6",
+        expect.stringContaining("Use assistant text only to disambiguate"),
+      ],
+      expect.objectContaining({
+        cwd: resolve("/tmp/project"),
+        encoding: "utf-8",
+        maxBuffer: 1024 * 1024,
+      }),
+    );
+    expect(readFileSyncMock).not.toHaveBeenCalled();
+  });
+
+  it("uses the Codex mini model for Codex sessions", () => {
     readFileSyncMock.mockReturnValue("`Claude SDK最新版更新`\n");
 
-    const name = generateAutoRenameName("/tmp/project", {
-      userText: "Claude Agent SDKを更新して",
-      assistantText: "現在のSDKバージョンを確認します。",
+    const name = generateAutoRenameName({
+      provider: "codex",
+      projectPath: "/tmp/project",
+      model: "gpt-5.5",
+      transcript: {
+        userText: "Claude Agent SDKを更新して",
+        assistantText: "現在のSDKバージョンを確認します。",
+      },
     });
 
     expect(name).toBe("Claude SDK最新版更新");

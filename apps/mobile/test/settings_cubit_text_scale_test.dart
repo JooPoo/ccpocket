@@ -47,17 +47,17 @@ void main() {
       final prefs = await SharedPreferences.getInstance();
       final cubit = SettingsCubit(prefs);
 
-      expect(cubit.state.autoRenameSessions, isFalse);
-
-      cubit.setAutoRenameSessions(true);
-
       expect(cubit.state.autoRenameSessions, isTrue);
-      expect(prefs.getBool('autoRenameSessions'), isTrue);
+
+      cubit.setAutoRenameSessions(false);
+
+      expect(cubit.state.autoRenameSessions, isFalse);
+      expect(prefs.getBool('autoRenameSessions'), isFalse);
 
       await cubit.close();
 
       final restored = SettingsCubit(prefs);
-      expect(restored.state.autoRenameSessions, isTrue);
+      expect(restored.state.autoRenameSessions, isFalse);
 
       await restored.close();
     });

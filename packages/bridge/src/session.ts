@@ -872,10 +872,17 @@ export class SessionManager {
     const transcript = buildAutoRenameTranscript(session.history);
     if (!transcript) return;
 
-    const name = generateAutoRenameName(
-      session.worktreePath ?? session.projectPath,
+    const name = generateAutoRenameName({
+      provider: session.provider,
+      projectPath: session.worktreePath ?? session.projectPath,
+      model:
+        session.provider === "claude"
+          ? session.process instanceof SdkProcess
+            ? session.process.model
+            : undefined
+          : session.codexSettings?.model,
       transcript,
-    );
+    });
     if (!name || session.name) return;
 
     const persisted = await this.persistSessionName(session, name);
