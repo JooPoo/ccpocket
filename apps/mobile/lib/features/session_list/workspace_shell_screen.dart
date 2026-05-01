@@ -200,10 +200,12 @@ class _GalleryToolPaneSnapshot extends _WorkspaceToolPaneSnapshot {
 class _WorkspaceToolPaneBindings {
   final ValueNotifier<DiffSelection?>? diffSelectionNotifier;
   final ValueChanged<ExploreScreenResult>? onExploreResultChanged;
+  final ValueChanged<String>? onFilePeekOpened;
 
   const _WorkspaceToolPaneBindings({
     this.diffSelectionNotifier,
     this.onExploreResultChanged,
+    this.onFilePeekOpened,
   });
 }
 
@@ -295,10 +297,12 @@ class WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
     required String sessionId,
     ValueNotifier<DiffSelection?>? diffSelectionNotifier,
     ValueChanged<ExploreScreenResult>? onExploreResultChanged,
+    ValueChanged<String>? onFilePeekOpened,
   }) {
     _toolPaneBindings[sessionId] = _WorkspaceToolPaneBindings(
       diffSelectionNotifier: diffSelectionNotifier,
       onExploreResultChanged: onExploreResultChanged,
+      onFilePeekOpened: onFilePeekOpened,
     );
   }
 
@@ -311,12 +315,16 @@ class WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
     String? sessionId,
     String? worktreePath,
     ValueNotifier<DiffSelection?>? diffSelectionNotifier,
+    ValueChanged<String>? onFilePeekOpened,
   }) {
-    if (sessionId != null && diffSelectionNotifier != null) {
+    if (sessionId != null &&
+        (diffSelectionNotifier != null || onFilePeekOpened != null)) {
       final current = _toolPaneBindings[sessionId];
       _toolPaneBindings[sessionId] = _WorkspaceToolPaneBindings(
-        diffSelectionNotifier: diffSelectionNotifier,
+        diffSelectionNotifier:
+            diffSelectionNotifier ?? current?.diffSelectionNotifier,
         onExploreResultChanged: current?.onExploreResultChanged,
+        onFilePeekOpened: onFilePeekOpened ?? current?.onFilePeekOpened,
       );
     }
     _openToolPane(
@@ -341,6 +349,7 @@ class WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
       _toolPaneBindings[sessionId] = _WorkspaceToolPaneBindings(
         diffSelectionNotifier: current?.diffSelectionNotifier,
         onExploreResultChanged: onResultChanged,
+        onFilePeekOpened: current?.onFilePeekOpened,
       );
     }
     _openToolPane(
@@ -580,6 +589,14 @@ class WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
     closeToolPane();
   }
 
+  void _handleFilePeekOpened(String filePath) {
+    final pane = _toolPane;
+    if (pane is! _GitToolPaneData) return;
+    final sessionId = _selectedSession?.sessionId ?? pane.sessionId;
+    if (sessionId == null) return;
+    _toolPaneBindings[sessionId]?.onFilePeekOpened?.call(filePath);
+  }
+
   void selectSession(WorkspaceSessionSelection selection) {
     setState(() {
       final previousShouldRestoreLeftPane =
@@ -754,6 +771,7 @@ class WorkspaceShellScreenState extends State<WorkspaceShellScreen> {
                   onClose: closeToolPane,
                   onExploreResultChanged: _handleExploreResult,
                   onDiffSelection: _handleDiffSelection,
+                  onFilePeekOpened: _handleFilePeekOpened,
                 ),
               ),
           ];
@@ -848,12 +866,14 @@ class _WorkspaceToolPaneHost extends StatelessWidget {
   final VoidCallback onClose;
   final ValueChanged<ExploreScreenResult> onExploreResultChanged;
   final ValueChanged<DiffSelection> onDiffSelection;
+  final ValueChanged<String> onFilePeekOpened;
 
   const _WorkspaceToolPaneHost({
     required this.pane,
     required this.onClose,
     required this.onExploreResultChanged,
     required this.onDiffSelection,
+    required this.onFilePeekOpened,
   });
 
   @override
@@ -871,6 +891,7 @@ class _WorkspaceToolPaneHost extends StatelessWidget {
           embedded: true,
           onClose: onClose,
           onRequestChange: onDiffSelection,
+          onFilePeekOpened: onFilePeekOpened,
         ),
       _ExploreToolPaneData(
         :final sessionId,

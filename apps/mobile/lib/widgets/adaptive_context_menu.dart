@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../utils/platform_helper.dart';
 
 class AdaptiveActionMenuItem<T> {
+  final Key? key;
   final T value;
   final IconData icon;
   final String label;
@@ -10,6 +11,7 @@ class AdaptiveActionMenuItem<T> {
   final bool destructive;
 
   const AdaptiveActionMenuItem({
+    this.key,
     required this.value,
     required this.icon,
     required this.label,
@@ -62,6 +64,7 @@ Future<T?> _showDesktopActionMenu<T>({
       if (header != null) const PopupMenuDivider(height: 1),
       for (final item in items)
         PopupMenuItem<T>(
+          key: item.key,
           value: item.value,
           child: _AdaptiveActionMenuRow(item: item, dense: true),
         ),
@@ -90,6 +93,7 @@ Future<T?> _showMobileActionSheet<T>({
           ],
           for (final item in items)
             ListTile(
+              key: item.key,
               leading: Icon(
                 item.icon,
                 color: item.destructive

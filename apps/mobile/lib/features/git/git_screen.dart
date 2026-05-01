@@ -11,6 +11,7 @@ import '../../utils/diff_parser.dart'
     show DiffSelection, reconstructDiff, reconstructUnifiedDiff;
 import '../../widgets/adaptive_context_menu.dart';
 import '../../widgets/workspace_pane_chrome.dart';
+import '../file_peek/file_peek_sheet.dart';
 import '../session_list/workspace_shell_screen.dart';
 import '../settings/state/settings_cubit.dart';
 import 'state/commit_cubit.dart';
@@ -50,6 +51,7 @@ class GitScreen extends StatefulWidget {
   final bool embedded;
   final VoidCallback? onClose;
   final ValueChanged<DiffSelection>? onRequestChange;
+  final ValueChanged<String>? onFilePeekOpened;
 
   const GitScreen({
     super.key,
@@ -61,6 +63,7 @@ class GitScreen extends StatefulWidget {
     this.embedded = false,
     this.onClose,
     this.onRequestChange,
+    this.onFilePeekOpened,
   });
 
   @override
@@ -144,12 +147,14 @@ class _GitScreenState extends State<GitScreen> {
       ],
       child: _GitScreenBody(
         title: widget.title,
+        projectPath: widget.projectPath,
         isProjectMode: isProjectMode,
         scrollController: _scrollController,
         scrollToFileIndex: _scrollToFileIndex,
         embedded: widget.embedded,
         onClose: widget.onClose,
         onRequestChange: widget.onRequestChange,
+        onFilePeekOpened: widget.onFilePeekOpened,
       ),
     );
   }
@@ -193,16 +198,21 @@ class _GitScreenBody extends StatelessWidget {
   final bool embedded;
   final VoidCallback? onClose;
   final ValueChanged<DiffSelection>? onRequestChange;
+  final ValueChanged<String>? onFilePeekOpened;
 
   const _GitScreenBody({
     this.title,
+    this.projectPath,
     this.isProjectMode = false,
     required this.scrollController,
     required this.scrollToFileIndex,
     this.embedded = false,
     this.onClose,
     this.onRequestChange,
+    this.onFilePeekOpened,
   });
+
+  final String? projectPath;
 
   @override
   Widget build(BuildContext context) {
@@ -337,6 +347,13 @@ class _GitScreenBody extends StatelessWidget {
       position: position,
       header: _DiffActionMenuHeader(filePath: file.filePath),
       items: [
+        const AdaptiveActionMenuItem(
+          key: ValueKey('git_view_file_action'),
+          value: 'view_file',
+          icon: Icons.description_outlined,
+          label: 'View File',
+          subtitle: 'Open the full current file',
+        ),
         if (!isStaged)
           const AdaptiveActionMenuItem(
             value: 'stage',
@@ -367,6 +384,8 @@ class _GitScreenBody extends StatelessWidget {
     );
     if (!context.mounted || action == null) return;
     switch (action) {
+      case 'view_file':
+        _openFilePeek(context, file.filePath);
       case 'stage':
         cubit.stageFile(fileIdx);
       case 'unstage':
@@ -408,6 +427,13 @@ class _GitScreenBody extends StatelessWidget {
         subtitle: hunk.header,
       ),
       items: [
+        const AdaptiveActionMenuItem(
+          key: ValueKey('git_view_file_action'),
+          value: 'view_file',
+          icon: Icons.description_outlined,
+          label: 'View File',
+          subtitle: 'Open the full current file',
+        ),
         if (!isStaged)
           const AdaptiveActionMenuItem(
             value: 'stage',
@@ -438,6 +464,8 @@ class _GitScreenBody extends StatelessWidget {
     );
     if (!context.mounted || action == null) return;
     switch (action) {
+      case 'view_file':
+        _openFilePeek(context, file.filePath);
       case 'stage':
         cubit.stageHunk(fileIdx, hunkIdx);
       case 'unstage':
@@ -492,6 +520,20 @@ class _GitScreenBody extends StatelessWidget {
       return;
     }
     context.router.maybePop(selection);
+  }
+
+  Future<void> _openFilePeek(BuildContext context, String filePath) {
+    final projectPath = this.projectPath;
+    if (projectPath == null || projectPath.isEmpty) {
+      return Future<void>.value();
+    }
+    return showFilePeekSheet(
+      context,
+      bridge: context.read<BridgeService>(),
+      projectPath: projectPath,
+      filePath: filePath,
+      onOpened: () => onFilePeekOpened?.call(filePath),
+    );
   }
 }
 

@@ -606,12 +606,28 @@ class _CodexChatBody extends HookWidget {
       cubit.setRecentPeekedFiles(result.recentPeekedFiles);
     }
 
+    void handleFilePeekOpened(String filePath) {
+      if (!context.mounted) return;
+      final currentPath =
+          parentState?._explorerCurrentPath ?? sessionState.explorerCurrentPath;
+      final recentPeekedFiles = updateRecentPeekedFiles(
+        parentState?._recentPeekedFiles ?? sessionState.recentPeekedFiles,
+        filePath,
+      );
+      parentState?.updateExplorerState(
+        currentPath: currentPath,
+        recentPeekedFiles: recentPeekedFiles,
+      );
+      context.read<ChatSessionCubit>().setRecentPeekedFiles(recentPeekedFiles);
+    }
+
     useEffect(() {
       final shell = WorkspaceShellScreen.maybeOf(context);
       shell?.registerSessionToolPaneBindings(
         sessionId: sessionId,
         diffSelectionNotifier: diffSelectionFromNav,
         onExploreResultChanged: handleExploreResult,
+        onFilePeekOpened: handleFilePeekOpened,
       );
       return () => shell?.unregisterSessionToolPaneBindings(sessionId);
     }, [sessionId]);
@@ -925,6 +941,7 @@ class _CodexChatBody extends HookWidget {
                               diffSelectionFromNav,
                               sessionId: sessionId,
                               worktreePath: worktreePath,
+                              onFilePeekOpened: handleFilePeekOpened,
                             );
                           },
                         ),
@@ -1208,6 +1225,7 @@ class _CodexChatBody extends HookWidget {
                             diffSelectionFromNav,
                             sessionId: sessionId,
                             worktreePath: worktreePath,
+                            onFilePeekOpened: handleFilePeekOpened,
                           )
                         : null,
                   ),
@@ -1301,6 +1319,7 @@ Future<void> _openGitScreen(
   ValueNotifier<DiffSelection?> diffSelectionNotifier, {
   String? sessionId,
   String? worktreePath,
+  ValueChanged<String>? onFilePeekOpened,
 }) async {
   final shell = WorkspaceShellScreen.maybeOf(context);
   if (shell?.canOpenToolPane ?? false) {
@@ -1309,6 +1328,7 @@ Future<void> _openGitScreen(
       sessionId: sessionId,
       worktreePath: worktreePath,
       diffSelectionNotifier: diffSelectionNotifier,
+      onFilePeekOpened: onFilePeekOpened,
     );
     return;
   }
@@ -1317,6 +1337,7 @@ Future<void> _openGitScreen(
       projectPath: projectPath,
       sessionId: sessionId,
       worktreePath: worktreePath,
+      onFilePeekOpened: onFilePeekOpened,
     ),
   );
   if (selection != null) {

@@ -624,6 +624,7 @@ class GitRoute extends PageRouteInfo<GitRouteArgs> {
     bool embedded = false,
     VoidCallback? onClose,
     ValueChanged<DiffSelection>? onRequestChange,
+    ValueChanged<String>? onFilePeekOpened,
     List<PageRouteInfo>? children,
   }) : super(
          GitRoute.name,
@@ -637,6 +638,7 @@ class GitRoute extends PageRouteInfo<GitRouteArgs> {
            embedded: embedded,
            onClose: onClose,
            onRequestChange: onRequestChange,
+           onFilePeekOpened: onFilePeekOpened,
          ),
          initialChildren: children,
        );
@@ -659,6 +661,7 @@ class GitRoute extends PageRouteInfo<GitRouteArgs> {
         embedded: args.embedded,
         onClose: args.onClose,
         onRequestChange: args.onRequestChange,
+        onFilePeekOpened: args.onFilePeekOpened,
       );
     },
   );
@@ -675,6 +678,7 @@ class GitRouteArgs {
     this.embedded = false,
     this.onClose,
     this.onRequestChange,
+    this.onFilePeekOpened,
   });
 
   final Key? key;
@@ -695,9 +699,11 @@ class GitRouteArgs {
 
   final ValueChanged<DiffSelection>? onRequestChange;
 
+  final ValueChanged<String>? onFilePeekOpened;
+
   @override
   String toString() {
-    return 'GitRouteArgs{key: $key, initialDiff: $initialDiff, projectPath: $projectPath, title: $title, worktreePath: $worktreePath, sessionId: $sessionId, embedded: $embedded, onClose: $onClose, onRequestChange: $onRequestChange}';
+    return 'GitRouteArgs{key: $key, initialDiff: $initialDiff, projectPath: $projectPath, title: $title, worktreePath: $worktreePath, sessionId: $sessionId, embedded: $embedded, onClose: $onClose, onRequestChange: $onRequestChange, onFilePeekOpened: $onFilePeekOpened}';
   }
 
   @override
@@ -712,7 +718,8 @@ class GitRouteArgs {
         sessionId == other.sessionId &&
         embedded == other.embedded &&
         onClose == other.onClose &&
-        onRequestChange == other.onRequestChange;
+        onRequestChange == other.onRequestChange &&
+        onFilePeekOpened == other.onFilePeekOpened;
   }
 
   @override
@@ -725,7 +732,8 @@ class GitRouteArgs {
       sessionId.hashCode ^
       embedded.hashCode ^
       onClose.hashCode ^
-      onRequestChange.hashCode;
+      onRequestChange.hashCode ^
+      onFilePeekOpened.hashCode;
 }
 
 /// generated route for
