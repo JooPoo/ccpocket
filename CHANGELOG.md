@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.83.2] - 2026-05-01
+
+### Changed
+- Keep the saved machine primary action focused on connecting, with Bridge updates available from the machine menu.
+- Let Bridge update checks use the latest published npm Bridge version in addition to the app's minimum recommended version.
+- Show current and latest Bridge versions in connection settings, including retry states when the latest version check fails.
+
+### Fixed
+- Refresh machine health and version status after failed Bridge update attempts so stale connection state is not left on screen.
+
 ## [1.83.1] - 2026-04-30
 
 ### Changed
