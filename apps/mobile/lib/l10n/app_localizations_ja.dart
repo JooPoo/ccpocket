@@ -167,6 +167,13 @@ class AppLocalizationsJa extends AppLocalizations {
   String get bridgeServerUpdated => 'Bridge Server を更新しました';
 
   @override
+  String get bridgeUpdateStarted => 'Bridge を更新しています。接続を閉じてマシン一覧に戻ります。';
+
+  @override
+  String get bridgeUpdateReconnectHint =>
+      'Bridge Server を更新しました。マシン一覧から再接続してください。';
+
+  @override
   String get failedToUpdateServer => 'サーバーの更新に失敗しました';
 
   @override

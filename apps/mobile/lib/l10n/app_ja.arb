@@ -62,6 +62,8 @@
 
   "serverRequiresApiKey": "このサーバーには API キーが必要です",
   "bridgeServerUpdated": "Bridge Server を更新しました",
+  "bridgeUpdateStarted": "Bridge を更新しています。接続を閉じてマシン一覧に戻ります。",
+  "bridgeUpdateReconnectHint": "Bridge Server を更新しました。マシン一覧から再接続してください。",
   "failedToUpdateServer": "サーバーの更新に失敗しました",
   "bridgeServerStarted": "Bridge Server を起動しました",
   "failedToStartServer": "サーバーの起動に失敗しました",

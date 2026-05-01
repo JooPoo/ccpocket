@@ -61,6 +61,8 @@
 
   "serverRequiresApiKey": "此服务器需要 API 密钥",
   "bridgeServerUpdated": "Bridge 服务已更新",
+  "bridgeUpdateStarted": "正在更新 Bridge。将关闭此连接并返回机器列表。",
+  "bridgeUpdateReconnectHint": "Bridge 服务已更新。请从机器列表重新连接。",
   "failedToUpdateServer": "更新服务器失败",
   "bridgeServerStarted": "Bridge 服务已启动",
   "failedToStartServer": "启动服务器失败",

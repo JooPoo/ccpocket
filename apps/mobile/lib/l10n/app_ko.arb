@@ -58,6 +58,8 @@
   "editSettingsThenStart": "설정을 편집한 뒤 시작",
   "serverRequiresApiKey": "이 서버에는 API 키가 필요합니다",
   "bridgeServerUpdated": "Bridge 서버가 업데이트됨",
+  "bridgeUpdateStarted": "Bridge를 업데이트하고 있습니다. 이 연결을 닫고 컴퓨터 목록으로 돌아갑니다.",
+  "bridgeUpdateReconnectHint": "Bridge 서버가 업데이트되었습니다. 컴퓨터 목록에서 다시 연결하세요.",
   "failedToUpdateServer": "서버 업데이트 실패",
   "bridgeServerStarted": "Bridge 서버가 시작됨",
   "failedToStartServer": "서버 시작 실패",

@@ -1024,6 +1024,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   void _updateBridgeFromSettings(MachineWithStatus machine) async {
     final cubit = context.read<MachineManagerCubit>();
+    final bridge = context.read<BridgeService>();
+    final settingsCubit = context.read<SettingsCubit>();
+    final messenger = ScaffoldMessenger.of(context);
     final l = AppLocalizations.of(context);
 
     final savedPassword = await cubit.getSshPassword(machine.machine.id);
@@ -1034,18 +1037,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (password == null) return;
     }
 
+    if (!mounted) return;
+
+    messenger.showSnackBar(SnackBar(content: Text(l.bridgeUpdateStarted)));
+
+    final isActiveMachine =
+        settingsCubit.state.activeMachineId == machine.machine.id;
+    if (isActiveMachine && bridge.isConnected) {
+      bridge.disconnect();
+    }
+
+    if (widget.embedded) {
+      WorkspaceShellScreen.maybeOf(context)?.popCenterOverlay();
+    } else {
+      await context.router.maybePop();
+    }
+
     final success = await cubit.updateBridge(
       machine.machine.id,
       password: password,
     );
 
-    if (!mounted) return;
     final message = success
-        ? l.bridgeServerUpdated
+        ? l.bridgeUpdateReconnectHint
         : cubit.state.error ?? l.failedToUpdateServer;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    messenger.showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<String?> _promptForPassword(String machineName) async {

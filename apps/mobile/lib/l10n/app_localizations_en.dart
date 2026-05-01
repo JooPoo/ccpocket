@@ -168,6 +168,14 @@ class AppLocalizationsEn extends AppLocalizations {
   String get bridgeServerUpdated => 'Bridge Server updated';
 
   @override
+  String get bridgeUpdateStarted =>
+      'Updating Bridge. Closing this connection and returning to the machine list.';
+
+  @override
+  String get bridgeUpdateReconnectHint =>
+      'Bridge Server updated. Reconnect from the machine list.';
+
+  @override
   String get failedToUpdateServer => 'Failed to update server';
 
   @override

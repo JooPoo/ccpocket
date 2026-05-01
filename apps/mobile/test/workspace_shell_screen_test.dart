@@ -16,6 +16,7 @@ import 'package:ccpocket/services/in_app_review_service.dart';
 import 'package:ccpocket/services/machine_manager_service.dart';
 import 'package:ccpocket/services/notification_service.dart';
 import 'package:ccpocket/services/revenuecat_service.dart';
+import 'package:ccpocket/services/ssh_startup_service.dart';
 import 'package:ccpocket/services/support_banner_service.dart';
 import 'package:ccpocket/theme/app_theme.dart';
 import 'package:ccpocket/widgets/session_card.dart';
@@ -24,6 +25,8 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provider/provider.dart' hide Provider;
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'helpers/bridge_version_test_values.dart';
 
 class _MockBridgeService extends BridgeService {
   final _connectionController =
@@ -41,10 +44,14 @@ class _MockBridgeService extends BridgeService {
   BridgeConnectionState _state;
   List<SessionInfo> _sessions = const [];
   List<GalleryImage> _images = const [];
+  final String? _lastUrl;
+  bool disconnectCalled = false;
 
   _MockBridgeService({
     BridgeConnectionState initialState = BridgeConnectionState.connected,
-  }) : _state = initialState;
+    String? lastUrl,
+  }) : _state = initialState,
+       _lastUrl = lastUrl;
 
   @override
   Stream<BridgeConnectionState> get connectionStatus =>
@@ -75,6 +82,9 @@ class _MockBridgeService extends BridgeService {
 
   @override
   bool get isConnected => _state == BridgeConnectionState.connected;
+
+  @override
+  String? get lastUrl => _lastUrl;
 
   @override
   List<SessionInfo> get sessions => _sessions;
@@ -154,6 +164,12 @@ class _MockBridgeService extends BridgeService {
   void send(ClientMessage message) {}
 
   @override
+  void disconnect() {
+    disconnectCalled = true;
+    emitConnection(BridgeConnectionState.disconnected);
+  }
+
+  @override
   void dispose() {
     _connectionController.close();
     _messageController.close();
@@ -174,33 +190,64 @@ class _FakeRevenueCatService extends RevenueCatService {
   }
 }
 
+class _SeededSettingsCubit extends SettingsCubit {
+  _SeededSettingsCubit(super.prefs, {required String? activeMachineId}) {
+    emit(state.copyWith(activeMachineId: activeMachineId));
+  }
+}
+
+class _FakeSshStartupService extends SshStartupService {
+  final Completer<SshResult> updateCompleter = Completer<SshResult>();
+
+  _FakeSshStartupService(super.machineManager);
+
+  @override
+  Future<SshResult> updateBridgeServer(
+    String machineId, {
+    String? password,
+    Future<String?> Function()? promptForPassword,
+  }) {
+    return updateCompleter.future;
+  }
+}
+
 class _StaticMachineManagerService implements MachineManagerService {
   final _controller = StreamController<List<MachineWithStatus>>.broadcast();
+  List<MachineWithStatus> statuses;
+  final String? sshPassword;
+
+  _StaticMachineManagerService({this.statuses = const [], this.sshPassword});
 
   @override
   Stream<List<MachineWithStatus>> get machines => _controller.stream;
 
   @override
-  List<Machine> get currentMachines => const [];
+  List<Machine> get currentMachines =>
+      statuses.map((status) => status.machine).toList();
 
   @override
-  List<MachineWithStatus> get machinesWithStatus => const [];
+  List<MachineWithStatus> get machinesWithStatus => statuses;
 
   @override
   Future<void> init() async {
-    _controller.add(const []);
+    _controller.add(statuses);
   }
 
   @override
   Future<void> checkAllHealth() async {
-    _controller.add(const []);
+    _controller.add(statuses);
   }
 
   @override
   Future<MachineStatus> checkHealth(
     String machineId, {
     Duration timeout = const Duration(seconds: 5),
-  }) async => MachineStatus.unknown;
+  }) async {
+    for (final status in statuses) {
+      if (status.machine.id == machineId) return status.status;
+    }
+    return MachineStatus.unknown;
+  }
 
   @override
   Future<Machine> recordConnection({
@@ -242,13 +289,18 @@ class _StaticMachineManagerService implements MachineManagerService {
   Future<void> toggleFavorite(String machineId) async {}
 
   @override
-  Machine? getMachine(String id) => null;
+  Machine? getMachine(String id) {
+    for (final status in statuses) {
+      if (status.machine.id == id) return status.machine;
+    }
+    return null;
+  }
 
   @override
   Future<String?> getApiKey(String machineId) async => null;
 
   @override
-  Future<String?> getSshPassword(String machineId) async => null;
+  Future<String?> getSshPassword(String machineId) async => sshPassword;
 
   @override
   Future<String?> getSshPrivateKey(String machineId) async => null;
@@ -265,7 +317,13 @@ class _StaticMachineManagerService implements MachineManagerService {
   }) => Machine(id: 'new', host: host, port: port, name: name, useSsl: useSsl);
 
   @override
-  Machine? findByHostPort(String host, int port) => null;
+  Machine? findByHostPort(String host, int port) {
+    for (final status in statuses) {
+      final machine = status.machine;
+      if (machine.host == host && machine.port == port) return machine;
+    }
+    return null;
+  }
 
   @override
   void startPeriodicHealthCheck({Duration? interval}) {}
@@ -276,6 +334,11 @@ class _StaticMachineManagerService implements MachineManagerService {
   @override
   void dispose() {
     _controller.close();
+  }
+
+  void replaceStatuses(List<MachineWithStatus> nextStatuses) {
+    statuses = nextStatuses;
+    _controller.add(statuses);
   }
 }
 
@@ -288,6 +351,7 @@ Widget _buildWorkspaceApp({
   List<RecentSession>? debugRecentSessions,
   GlobalKey<WorkspaceShellScreenState>? shellKey,
   TargetPlatform platform = TargetPlatform.macOS,
+  MachineManagerCubit? machineManagerCubit,
 }) {
   final sessionListCubit = SessionListCubit(bridge: bridge);
   final connectionCubit = ConnectionCubit(
@@ -303,10 +367,9 @@ Widget _buildWorkspaceApp({
     const [],
     bridge.projectHistoryStream,
   );
-  final machineManagerCubit = MachineManagerCubit(
-    _StaticMachineManagerService(),
-    null,
-  );
+  final resolvedMachineManagerCubit =
+      machineManagerCubit ??
+      MachineManagerCubit(_StaticMachineManagerService(), null);
 
   return MultiRepositoryProvider(
     providers: [
@@ -325,7 +388,9 @@ Widget _buildWorkspaceApp({
         BlocProvider<FileListCubit>.value(value: fileListCubit),
         BlocProvider<ProjectHistoryCubit>.value(value: projectHistoryCubit),
         BlocProvider<SessionListCubit>.value(value: sessionListCubit),
-        BlocProvider<MachineManagerCubit>.value(value: machineManagerCubit),
+        BlocProvider<MachineManagerCubit>.value(
+          value: resolvedMachineManagerCubit,
+        ),
         BlocProvider<SettingsCubit>.value(value: settingsCubit),
         BlocProvider<ServerDiscoveryCubit>(
           create: (_) => ServerDiscoveryCubit(),
@@ -758,6 +823,98 @@ void main() {
       findsOneWidget,
     );
   });
+
+  testWidgets(
+    'bridge update from settings disconnects and returns to machine list',
+    (tester) async {
+      await tester.binding.setSurfaceSize(const Size(1400, 900));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      final machine = Machine(
+        id: 'machine-1',
+        name: 'Remote Mac',
+        host: '100.64.0.1',
+        sshEnabled: true,
+        sshUsername: 'k9i',
+      );
+      final machineManagerService = _StaticMachineManagerService(
+        statuses: [
+          MachineWithStatus(
+            machine: machine,
+            status: MachineStatus.online,
+            versionInfo: BridgeVersionInfo(
+              version: olderThanRecommendedBridgeVersion,
+            ),
+          ),
+        ],
+        sshPassword: 'secret',
+      );
+      final sshService = _FakeSshStartupService(machineManagerService);
+      final machineManagerCubit = MachineManagerCubit(
+        machineManagerService,
+        sshService,
+      );
+      final bridge = _MockBridgeService(lastUrl: 'ws://100.64.0.1:8765');
+      final settingsCubit = _SeededSettingsCubit(
+        await SharedPreferences.getInstance(),
+        activeMachineId: 'machine-1',
+      );
+      final draftService = DraftService(await SharedPreferences.getInstance());
+      final revenueCatService = _FakeRevenueCatService();
+      final supportBannerService = await _createSupportBannerService();
+      final shellKey = GlobalKey<WorkspaceShellScreenState>();
+
+      await tester.pumpWidget(
+        _buildWorkspaceApp(
+          bridge: bridge,
+          settingsCubit: settingsCubit,
+          draftService: draftService,
+          revenueCatService: revenueCatService,
+          supportBannerService: supportBannerService,
+          shellKey: shellKey,
+          machineManagerCubit: machineManagerCubit,
+        ),
+      );
+      await _pumpUi(tester);
+
+      shellKey.currentState!.openSettingsCenter(focusConnection: true);
+      await _pumpUi(tester);
+      expect(
+        find.byKey(const ValueKey('settings_update_bridge_button')),
+        findsOneWidget,
+      );
+
+      final updateButton = tester.widget<FilledButton>(
+        find.byKey(const ValueKey('settings_update_bridge_button')),
+      );
+      updateButton.onPressed!();
+      await tester.pump();
+
+      expect(bridge.disconnectCalled, isTrue);
+      expect(machineManagerCubit.state.updatingMachineId, 'machine-1');
+      expect(
+        find.byKey(const ValueKey('embedded_settings_back_button')),
+        findsNothing,
+      );
+      expect(find.text('Machines'), findsOneWidget);
+
+      machineManagerService.replaceStatuses([
+        MachineWithStatus(
+          machine: machine,
+          status: MachineStatus.online,
+          versionInfo: BridgeVersionInfo(version: recommendedBridgeVersion),
+        ),
+      ]);
+      sshService.updateCompleter.complete(SshResult.success());
+      await tester.pump();
+      await tester.pump();
+
+      await settingsCubit.close();
+      await machineManagerCubit.close();
+      machineManagerService.dispose();
+      bridge.dispose();
+    },
+  );
 
   testWidgets('opens session gallery in right pane', (tester) async {
     final bridge = _MockBridgeService();

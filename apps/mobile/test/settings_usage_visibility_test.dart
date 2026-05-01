@@ -14,6 +14,7 @@ import 'package:ccpocket/services/database_service.dart';
 import 'package:ccpocket/services/in_app_review_service.dart';
 import 'package:ccpocket/services/machine_manager_service.dart';
 import 'package:ccpocket/services/revenuecat_service.dart';
+import 'package:ccpocket/services/ssh_startup_service.dart';
 import 'package:ccpocket/services/support_banner_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -32,18 +33,19 @@ class _FakeBridgeService extends BridgeService {
   final _connectionController =
       StreamController<BridgeConnectionState>.broadcast();
   final _usageController = StreamController<UsageResultMessage>.broadcast();
-  final bool connected;
+  bool _connected;
   final UsageResultMessage? cachedUsage;
   final String? fakeLastUrl;
+  bool disconnectCalled = false;
 
   _FakeBridgeService({
-    required this.connected,
+    required bool connected,
     this.cachedUsage,
     this.fakeLastUrl,
-  });
+  }) : _connected = connected;
 
   @override
-  bool get isConnected => connected;
+  bool get isConnected => _connected;
 
   @override
   String? get lastUrl => fakeLastUrl;
@@ -60,6 +62,13 @@ class _FakeBridgeService extends BridgeService {
 
   @override
   void requestUsage() {}
+
+  @override
+  void disconnect() {
+    disconnectCalled = true;
+    _connected = false;
+    _connectionController.add(BridgeConnectionState.disconnected);
+  }
 
   @override
   void dispose() {
@@ -107,11 +116,27 @@ class _FakeSecureStorage extends Fake implements FlutterSecureStorage {
   }) async => null;
 }
 
+class _FakeSshStartupService extends SshStartupService {
+  final Completer<SshResult> updateCompleter = Completer<SshResult>();
+
+  _FakeSshStartupService(super.machineManager);
+
+  @override
+  Future<SshResult> updateBridgeServer(
+    String machineId, {
+    String? password,
+    Future<String?> Function()? promptForPassword,
+  }) {
+    return updateCompleter.future;
+  }
+}
+
 class _StaticMachineManagerService implements MachineManagerService {
   final _controller = StreamController<List<MachineWithStatus>>.broadcast();
-  final List<MachineWithStatus> _statuses;
+  List<MachineWithStatus> _statuses;
+  final String? sshPassword;
 
-  _StaticMachineManagerService(this._statuses);
+  _StaticMachineManagerService(this._statuses, {this.sshPassword});
 
   @override
   Stream<List<MachineWithStatus>> get machines => _controller.stream;
@@ -180,7 +205,7 @@ class _StaticMachineManagerService implements MachineManagerService {
   Future<String?> getApiKey(String machineId) async => null;
 
   @override
-  Future<String?> getSshPassword(String machineId) async => null;
+  Future<String?> getSshPassword(String machineId) async => sshPassword;
 
   @override
   Future<String?> getSshPrivateKey(String machineId) async => null;
@@ -232,6 +257,11 @@ class _StaticMachineManagerService implements MachineManagerService {
     _controller.close();
   }
 
+  void replaceStatuses(List<MachineWithStatus> statuses) {
+    _statuses = statuses;
+    _controller.add(_statuses);
+  }
+
   MachineWithStatus? _findStatus(String id) {
     for (final status in _statuses) {
       if (status.machine.id == id) return status;
@@ -249,6 +279,7 @@ Future<Widget> _buildScreen({
   SupportBannerService? supportBannerService,
   bool focusConnection = false,
   bool focusSupport = false,
+  bool embedded = false,
 }) async {
   final prefs = await SharedPreferences.getInstance();
   final screen = MultiRepositoryProvider(
@@ -274,6 +305,7 @@ Future<Widget> _buildScreen({
         home: SettingsScreen(
           focusConnection: focusConnection,
           focusSupport: focusSupport,
+          embedded: embedded,
         ),
       ),
     ),
@@ -375,6 +407,77 @@ void main() {
         bridge.dispose();
       },
     );
+
+    testWidgets('disconnects and marks machine updating when update starts', (
+      tester,
+    ) async {
+      SharedPreferences.setMockInitialValues({});
+      final prefs = await SharedPreferences.getInstance();
+      final settingsCubit = _SeededSettingsCubit(
+        prefs,
+        activeMachineId: 'machine-1',
+      );
+      final machine = Machine(
+        id: 'machine-1',
+        name: 'Remote Mac',
+        host: '100.64.0.1',
+        sshEnabled: true,
+        sshUsername: 'k9i',
+      );
+      final machineManagerService = _StaticMachineManagerService([
+        MachineWithStatus(
+          machine: machine,
+          status: MachineStatus.online,
+          versionInfo: BridgeVersionInfo(
+            version: olderThanRecommendedBridgeVersion,
+          ),
+        ),
+      ], sshPassword: 'secret');
+      final sshService = _FakeSshStartupService(machineManagerService);
+      final machineManagerCubit = MachineManagerCubit(
+        machineManagerService,
+        sshService,
+        latestVersionService: _recommendedLatestVersionService(),
+      );
+      final bridge = _FakeBridgeService(
+        connected: true,
+        fakeLastUrl: 'ws://100.64.0.1:8765',
+      );
+
+      await tester.pumpWidget(
+        await _buildScreen(
+          bridge: bridge,
+          settingsCubit: settingsCubit,
+          machineManagerCubit: machineManagerCubit,
+          embedded: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('settings_update_bridge_button')),
+      );
+      await tester.pump();
+
+      expect(bridge.disconnectCalled, isTrue);
+      expect(machineManagerCubit.state.updatingMachineId, 'machine-1');
+
+      machineManagerService.replaceStatuses([
+        MachineWithStatus(
+          machine: machine,
+          status: MachineStatus.online,
+          versionInfo: BridgeVersionInfo(version: recommendedBridgeVersion),
+        ),
+      ]);
+      sshService.updateCompleter.complete(SshResult.success());
+      await tester.pump();
+      await tester.pump();
+
+      await settingsCubit.close();
+      await machineManagerCubit.close();
+      machineManagerService.dispose();
+      bridge.dispose();
+    });
 
     testWidgets(
       'shows bridge update button when npm latest is newer than required version',

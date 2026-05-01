@@ -166,6 +166,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get bridgeServerUpdated => 'Bridge 服务已更新';
 
   @override
+  String get bridgeUpdateStarted => '正在更新 Bridge。将关闭此连接并返回机器列表。';
+
+  @override
+  String get bridgeUpdateReconnectHint => 'Bridge 服务已更新。请从机器列表重新连接。';
+
+  @override
   String get failedToUpdateServer => '更新服务器失败';
 
   @override

@@ -64,6 +64,8 @@
 
   "serverRequiresApiKey": "This server requires an API key",
   "bridgeServerUpdated": "Bridge Server updated",
+  "bridgeUpdateStarted": "Updating Bridge. Closing this connection and returning to the machine list.",
+  "bridgeUpdateReconnectHint": "Bridge Server updated. Reconnect from the machine list.",
   "failedToUpdateServer": "Failed to update server",
   "bridgeServerStarted": "Bridge Server started",
   "failedToStartServer": "Failed to start server",

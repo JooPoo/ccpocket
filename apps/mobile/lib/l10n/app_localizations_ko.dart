@@ -166,6 +166,14 @@ class AppLocalizationsKo extends AppLocalizations {
   String get bridgeServerUpdated => 'Bridge 서버가 업데이트됨';
 
   @override
+  String get bridgeUpdateStarted =>
+      'Bridge를 업데이트하고 있습니다. 이 연결을 닫고 컴퓨터 목록으로 돌아갑니다.';
+
+  @override
+  String get bridgeUpdateReconnectHint =>
+      'Bridge 서버가 업데이트되었습니다. 컴퓨터 목록에서 다시 연결하세요.';
+
+  @override
   String get failedToUpdateServer => '서버 업데이트 실패';
 
   @override

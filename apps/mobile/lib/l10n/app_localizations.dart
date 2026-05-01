@@ -408,6 +408,18 @@ abstract class AppLocalizations {
   /// **'Bridge Server を更新しました'**
   String get bridgeServerUpdated;
 
+  /// No description provided for @bridgeUpdateStarted.
+  ///
+  /// In ja, this message translates to:
+  /// **'Bridge を更新しています。接続を閉じてマシン一覧に戻ります。'**
+  String get bridgeUpdateStarted;
+
+  /// No description provided for @bridgeUpdateReconnectHint.
+  ///
+  /// In ja, this message translates to:
+  /// **'Bridge Server を更新しました。マシン一覧から再接続してください。'**
+  String get bridgeUpdateReconnectHint;
+
   /// No description provided for @failedToUpdateServer.
   ///
   /// In ja, this message translates to:
