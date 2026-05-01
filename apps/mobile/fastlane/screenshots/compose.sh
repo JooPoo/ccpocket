@@ -56,22 +56,22 @@ HERO_ILLUSTRATION="${SCRIPT_DIR}/assets/remote-agent-train-laptop.png"
 
 # Screenshot definitions: key, keyword_en, title_en, keyword_ja, title_ja, keyword_zh, title_zh, keyword_ko, title_ko
 SCREENSHOTS=(
-  "01_session_list|Self-hosted Codex|Run Codex on Mac/Linux. Control from your phone.|セルフホストCodex|Mac/LinuxのCodexをスマホから操作|自托管 Codex|在 Mac/Linux 运行 Codex，用手机控制|셀프 호스팅 Codex|Mac/Linux의 Codex를 휴대폰으로 제어"
-  "02_recent_sessions|Continue Codex|Codex sessions sync; Claude Code is also supported.|Codexをどこでも継続|Codexセッションを端末間で引き継ぎ。Claude Codeにも対応|随处继续 Codex|Codex 会话随设备同步，也支持 Claude Code|Codex 이어가기|Codex 세션을 기기 간 이어가기. Claude Code도 지원"
-  "03_approval_list|Approve Codex|Handle multiple Codex approvals at a glance.|Codex承認をまとめて|複数のCodexセッションを一目で承認|审批 Codex|一览处理多个 Codex 审批|Codex 승인|여러 Codex 승인을 한눈에 처리"
-  "04_multi_question|Codex decisions|Answer questions without opening a laptop.|Codexの判断をタッチで|PCを開かずに質問へ回答|Codex 决策|不用打开电脑也能回答问题|Codex 판단|노트북 없이 질문에 답하기"
-  "05_explorer|Codex Explorer|Explorer shows the files behind the work.|Codexのファイル閲覧|Explorerで作業中のファイルを確認|Codex Explorer|Explorer 展示背后的文件|Codex Explorer|Explorer로 작업 파일 확인"
-  "06_git_actions|Ship Codex changes|Stage, commit, push, or revert from the app.|Codexの変更を出荷|stage、commit、push、revertまで|交付 Codex 变更|在应用中 stage、commit、push 或 revert|Codex 변경 반영|앱에서 stage, commit, push, revert"
-  "07_images_screenshots|Visual context|MCP images and Mac screenshots stay in context.|Codexに視覚情報を|MCP画像やMacスクショを文脈に|视觉上下文|在上下文中查看 MCP 图片和 Mac 截图|시각 맥락|MCP 이미지와 Mac 스크린샷을 함께"
-  "08_network_resilience|Mobile-ready Codex|Pending prompts resend after reconnect.|不安定な通信でもCodex|pendingプロンプトを再接続後に再送|移动 Codex|重连后自动重发 pending 提示|모바일 Codex|재연결 후 pending 프롬프트 자동 재전송"
+  "01_session_list|Code Agents, From Your Phone|They run on your computer. You control them anywhere.|コードエージェントをスマホから|PCで実行。どこからでも操作。|用手机操控编程代理|在电脑上运行，随时随地控制|휴대폰에서 코딩 에이전트 제어|PC에서 실행하고 어디서든 조작"
+  "02_approval_list|Multiple sessions|Approve at a glance|複数セッション一覧|まとめて承認対応|多会话一览|一目了然，批量审批|여러 세션을 한눈에|승인을 빠르게 처리"
+  "03_multi_question|Mobile-first UI|Questions, answered instantly|モバイル最適化|承認UIで素早く回答|移动端优化|快速回答审批请求|모바일에 최적화|질문과 승인을 즉시 처리"
+  "04_markdown_input|Write rich prompts|Bullet lists made easy|リッチなプロンプト|箇条書きが簡単|丰富的提示|轻松编写列表|풍부한 프롬프트 작성|목록 입력도 간편하게"
+  "05_image_attach|Attach images|From clipboard or gallery|画像を添付|クリップボードから貼り付け|附加图片|从剪贴板或相册选取|이미지 첨부|클립보드나 갤러리에서"
+  "06_git_diff|Review diffs|See every change at once|差分を確認|変更を一覧表示|审查差异|一览所有代码变更|diff 리뷰|모든 변경을 한 번에 확인"
+  "07_new_session|Just your phone|Open the app, pick a project, go|スマホだけでOK|アプリを開いて、すぐ開発|只需手机|打开应用，选择项目，开始|휴대폰만 있으면 OK|앱을 열고 바로 개발 시작"
+  "08_dark_theme|Dark mode|Easy on the eyes|ダークモード|目に優しいダークテーマ|深色模式|护眼深色主题|다크 모드|눈이 편한 어두운 테마"
 )
 
 IPAD_SCREENSHOTS=(
-  "01_workspace_overview|Codex workspace on iPad|Chat, sessions, and Git side by side|iPadでCodexワークスペース|会話、セッション、Gitを並べて確認|iPad 上的 Codex 工作区|聊天、会话和 Git 并排显示|iPad의 Codex 워크스페이스|채팅, 세션, Git을 나란히"
-  "02_workspace_explorer|Explorer beside Codex|Keep project files next to the conversation|Codexの横にExplorer|チャットしながらファイル確認|Codex 旁的 Explorer|对话旁边查看项目文件|Codex 옆 Explorer|대화 옆에서 파일 확인"
-  "03_approval_context|Approve Codex in context|Answer without leaving the workspace|文脈のままCodex承認|ワークスペースを離れず判断|在上下文中审批 Codex|不离开工作区即可回答|맥락 안에서 Codex 승인|워크스페이스를 떠나지 않고 답변"
-  "04_approval_queue|Codex approval queue|Review waiting sessions together|Codex承認キュー|複数セッションの待ちをまとめて処理|Codex 审批队列|集中处理等待中的会话|Codex 승인 대기열|기다리는 세션을 한곳에서 처리"
-  "05_dark_workspace|Focused Codex workspace|A desktop-like layout on iPad and Mac|集中できるCodex画面|iPad/macOSでデスクトップのように|专注 Codex 工作区|iPad 和 Mac 上的桌面式布局|집중을 위한 Codex 화면|iPad와 Mac의 데스크톱 같은 레이아웃"
+  "01_workspace_overview|Tablet-optimized UI|Chat, sessions, and Git side by side|タブレット最適化 UI|会話、セッション、差分を並べて見渡せる|平板优化界面|会话、会话列表与差异并排查看|태블릿 최적화 UI|채팅, 세션, Git을 나란히"
+  "02_workspace_explorer|IDE-like workflow|Keep files next to the conversation|IDE ライクな操作感|会話しながらファイルを横で確認できる|IDE 般的操作体验|一边对话一边在旁边查看文件|IDE 같은 워크플로|대화 옆에서 파일 확인"
+  "03_approval_context|Stay in flow|Review requests without leaving your place|流れを止めずに承認|今見ている画面のまま判断できる|不中断当前流程|在当前画面中直接完成审批|흐름을 끊지 않고 승인|현재 화면에서 바로 판단"
+  "04_approval_queue|Review requests together|Handle multiple approvals in one place|承認依頼をまとめて確認|複数セッションの待ちを一気に処理|集中查看审批请求|在一个地方处理多个待审批会话|승인 요청을 모아 보기|여러 세션을 한곳에서 처리"
+  "05_dark_workspace|Built for focus|An immersive layout like your desktop IDE|iPad でも集中して開発|デスクトップ IDE のような没入感|专注开发而生|像桌面 IDE 一样沉浸的布局|집중을 위한 작업 공간|데스크톱 IDE 같은 몰입감"
 )
 
 compose_hero_screenshot() {
@@ -220,22 +220,16 @@ compose_screenshot() {
     subtitle_fill="rgba(17,17,17,0.75)"
   fi
 
-  magick -background none -size "1180x140" -gravity center \
-    -font "$font_bold" -pointsize 104 -fill "$text_fill" \
-    caption:"$keyword" /tmp/keyword_$$.png
-
-  magick -background none -size "1160x170" -gravity center \
-    -font "$font_reg" -pointsize 56 -fill "$subtitle_fill" \
-    caption:"$title" /tmp/title_$$.png
-
   magick -size "${CANVAS_W}x${CANVAS_H}" "$bg_gradient" \
     /tmp/framed_ss_$$.png -geometry "+${ss_x}+${ss_y}" -composite \
-    /tmp/keyword_$$.png -geometry "+70+155" -composite \
-    /tmp/title_$$.png -geometry "+80+310" -composite \
+    -gravity North \
+    -font "$font_bold" -pointsize 110 -fill "$text_fill" \
+    -annotate +0+180 "$keyword" \
+    -font "$font_reg" -pointsize 72 -fill "$subtitle_fill" \
+    -annotate +0+320 "$title" \
     -depth 8 $PNG_STRIP "$output"
 
-  rm -f /tmp/mask_$$.png /tmp/ss_$$.png /tmp/bezel_$$.png /tmp/framed_ss_$$.png \
-    /tmp/keyword_$$.png /tmp/title_$$.png
+  rm -f /tmp/mask_$$.png /tmp/ss_$$.png /tmp/bezel_$$.png /tmp/framed_ss_$$.png
   echo "  -> $output"
 }
 
@@ -416,7 +410,7 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
 README_IMG_DIR="${REPO_ROOT}/docs/images"
 mkdir -p "$README_IMG_DIR"
 
-README_KEYS=("01_session_list" "02_recent_sessions" "05_explorer" "06_git_actions")
+README_KEYS=("01_session_list" "02_approval_list" "04_markdown_input" "07_new_session")
 
 for lang_dir in en-US ja zh-CN ko; do
   README_INPUTS=()
@@ -452,17 +446,10 @@ for lang_dir in en-US ja zh-CN ko; do
   store_lang_dir="${STORE_DIR}/${ios_lang}"
   mkdir -p "$store_lang_dir"
   rm -f "$store_lang_dir"/*.png
-  for entry in "${SCREENSHOTS[@]}"; do
-    IFS='|' read -r key _ <<< "$entry"
-    f="${SCRIPT_DIR}/${lang_dir}/${key}_framed.png"
+  for f in "${SCRIPT_DIR}/${lang_dir}"/*_framed.png; do
     [ -f "$f" ] || continue
-    cp "$f" "$store_lang_dir/${key}.png"
-  done
-  for entry in "${IPAD_SCREENSHOTS[@]}"; do
-    IFS='|' read -r key _ <<< "$entry"
-    f="${SCRIPT_DIR}/${lang_dir}/ipad_${key}_framed.png"
-    [ -f "$f" ] || continue
-    cp "$f" "$store_lang_dir/ipad_${key}.png"
+    name=$(basename "$f" | sed 's/_framed//')
+    cp "$f" "$store_lang_dir/$name"
   done
   echo "  iOS  -> $store_lang_dir/ ($(ls "$store_lang_dir" | wc -l | tr -d ' ') files)"
 
@@ -479,11 +466,12 @@ for lang_dir in en-US ja zh-CN ko; do
   android_ss_dir="${ANDROID_META}/${android_lang}/images/phoneScreenshots"
   mkdir -p "$android_ss_dir"
   rm -f "$android_ss_dir"/*.png
-  for entry in "${SCREENSHOTS[@]}"; do
-    IFS='|' read -r key _ <<< "$entry"
-    f="${SCRIPT_DIR}/${lang_dir}/${key}_framed.png"
+  for f in "${SCRIPT_DIR}/${lang_dir}"/*_framed.png; do
     [ -f "$f" ] || continue
-    cp "$f" "$android_ss_dir/${key}.png"
+    name=$(basename "$f" | sed 's/_framed//')
+    # Skip iPad screenshots (Android phone screenshots only)
+    case "$name" in ipad_*) continue ;; esac
+    cp "$f" "$android_ss_dir/$name"
   done
   echo "  Android -> $android_ss_dir/ ($(ls "$android_ss_dir" | wc -l | tr -d ' ') files)"
 done

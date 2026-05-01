@@ -64,9 +64,9 @@ void registerStoreScreenshotExtensions() {
     name: 'ccpocket.navigateToStoreScenario',
     description:
         'Navigate to a store screenshot scenario by name. '
-        'Available scenarios: Self-Hosted Agents, Recent Sessions, '
-        'Approval List, Multi-Question Approval, Project Explorer, '
-        'Git Actions, Images & Screenshots, Network Resilience, '
+        'Available scenarios: Session List (Recent), Session List, '
+        'Multi-Question Approval, Markdown Input, '
+        'Image Attach, Git Diff, New Session, '
         'Workspace Overview, Workspace Explorer, '
         'Approval In Context, Approval Queue, Dark Workspace',
     callback: (params) async {
@@ -225,26 +225,13 @@ Route<void> buildStoreScenarioRoute(
   DraftService? draftService,
 ]) {
   switch (scenarioName) {
-    case 'Self-Hosted Agents':
     case 'Session List':
     case 'Session List (Recent)':
       return MaterialPageRoute(
         builder: (_) => _StoreSessionListRoute(
           draftService: draftService,
-          minimalRunning:
-              scenarioName != 'Session List' && scenarioName != 'Approval List',
+          minimalRunning: scenarioName == 'Session List (Recent)',
         ),
-      );
-    case 'Recent Sessions':
-      return MaterialPageRoute(
-        builder: (_) => _StoreSessionListRoute(
-          draftService: draftService,
-          minimalRunning: true,
-        ),
-      );
-    case 'Approval List':
-      return MaterialPageRoute(
-        builder: (_) => _StoreSessionListRoute(draftService: draftService),
       );
     case 'New Session':
       return MaterialPageRoute(
@@ -262,17 +249,8 @@ Route<void> buildStoreScenarioRoute(
       return MaterialPageRoute(
         builder: (_) => _StoreImageAttachRoute(draftService: draftService),
       );
-    case 'Project Explorer':
-      return MaterialPageRoute(builder: (_) => const _StoreExplorerRoute());
-    case 'Git Actions':
     case 'Git Diff':
       return MaterialPageRoute(builder: (_) => const _StoreGitRoute());
-    case 'Images & Screenshots':
-      return MaterialPageRoute(
-        builder: (_) => const _StoreVisualContextRoute(),
-      );
-    case 'Network Resilience':
-      return MaterialPageRoute(builder: (_) => const _StoreNetworkRoute());
     case 'Workspace Overview':
       return MaterialPageRoute(
         builder: (_) => _StoreWorkspaceRoute(
@@ -317,47 +295,6 @@ Route<void> buildStoreScenarioRoute(
         'scenarioName',
         'Unknown store scenario',
       );
-  }
-}
-
-/// Phone-width Explorer route for store screenshots.
-class _StoreExplorerRoute extends StatefulWidget {
-  const _StoreExplorerRoute();
-
-  @override
-  State<_StoreExplorerRoute> createState() => _StoreExplorerRouteState();
-}
-
-class _StoreExplorerRouteState extends State<_StoreExplorerRoute> {
-  late final MockBridgeService _mockBridge;
-
-  @override
-  void initState() {
-    super.initState();
-    _mockBridge = MockBridgeService();
-  }
-
-  @override
-  void dispose() {
-    _mockBridge.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return RepositoryProvider<BridgeService>.value(
-      value: _mockBridge,
-      child: const ExploreScreen(
-        sessionId: 'store-explorer',
-        projectPath: '/Users/dev/projects/shopify-app',
-        initialFiles: storeMarkdownInputFileList,
-        initialPath: 'lib/features/checkout',
-        recentPeekedFiles: [
-          'lib/services/stripe_service.dart',
-          'lib/features/checkout/checkout_screen.dart',
-        ],
-      ),
-    );
   }
 }
 
@@ -480,7 +417,7 @@ class _StoreSessionListRouteState extends State<_StoreSessionListRoute> {
   }
 }
 
-/// Codex chat route for store screenshots (Multi-Question Approval).
+/// Chat route for store screenshots (Multi-Question Approval).
 class _StoreChatRoute extends StatefulWidget {
   final String scenarioName;
   const _StoreChatRoute({required this.scenarioName});
@@ -533,7 +470,7 @@ class _StoreChatRouteState extends State<_StoreChatRoute> {
             create: (_) => FileListCubit(const [], _mockService.fileList),
           ),
         ],
-        child: CodexSessionScreen(
+        child: ClaudeSessionScreen(
           sessionId: sessionId,
           projectPath: '/store/preview',
         ),
@@ -780,487 +717,6 @@ class _StoreGitRouteState extends State<_StoreGitRoute> {
   }
 }
 
-/// Store-only visual context preview for MCP images and Mac screenshots.
-class _StoreVisualContextRoute extends StatelessWidget {
-  const _StoreVisualContextRoute();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Visual context'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.screenshot_monitor),
-            tooltip: 'Screenshot',
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _StoreStatusBanner(
-            icon: Icons.image_search_outlined,
-            title: 'MCP images and Mac screenshots',
-            subtitle: 'Keep visual context beside the coding session.',
-            color: cs.primaryContainer,
-            foreground: cs.onPrimaryContainer,
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: _StoreImagePreviewCard(
-                  title: 'Checkout mockup',
-                  subtitle: 'Attached from Photos',
-                  color: const Color(0xFF6EA8FE),
-                  icon: Icons.photo_library_outlined,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _StoreImagePreviewCard(
-                  title: 'Desktop screenshot',
-                  subtitle: 'Captured from Mac',
-                  color: const Color(0xFFFFB86B),
-                  icon: Icons.desktop_mac_outlined,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 18),
-          _StoreChatPreviewCard(
-            label: 'Codex',
-            text:
-                'I can use these screenshots to match the layout, spacing, and visual states.',
-            icon: Icons.auto_awesome,
-          ),
-          const SizedBox(height: 12),
-          _StoreChatPreviewCard(
-            label: 'Claude supported',
-            text:
-                'Claude Code sessions appear in the same app when you need them.',
-            icon: Icons.code,
-          ),
-          const SizedBox(height: 12),
-          _StoreToolPreviewCard(
-            title: 'Screenshot saved',
-            subtitle: 'MacBook Pro - Safari window',
-            icon: Icons.check_circle_outline,
-          ),
-          const SizedBox(height: 12),
-          _StoreToolPreviewCard(
-            title: 'Image available in gallery',
-            subtitle: '2 images linked to this session',
-            icon: Icons.collections_outlined,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// Store-only network resilience preview for offline pending messages.
-class _StoreNetworkRoute extends StatelessWidget {
-  const _StoreNetworkRoute();
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Checkout Refactor'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.sync),
-            tooltip: 'Sync',
-            onPressed: () {},
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          _StoreStatusBanner(
-            icon: Icons.wifi_off_outlined,
-            title: 'Offline message pending',
-            subtitle: 'It will resend automatically after reconnecting.',
-            color: cs.errorContainer,
-            foreground: cs.onErrorContainer,
-          ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-              children: [
-                _StoreChatPreviewCard(
-                  label: 'Codex',
-                  text:
-                      'I finished the checkout refactor and prepared a diff for review.',
-                  icon: Icons.smart_toy_outlined,
-                ),
-                const SizedBox(height: 12),
-                _StorePendingMessageCard(
-                  text:
-                      'Looks good. Stage the checkout files and generate a commit message.',
-                ),
-                const SizedBox(height: 16),
-                _StoreTimelineStep(
-                  icon: Icons.download_done,
-                  title: 'Recovered missed deltas',
-                  subtitle: 'The latest assistant output is back in sync.',
-                ),
-                _StoreTimelineStep(
-                  icon: Icons.schedule_send_outlined,
-                  title: 'Pending message queued',
-                  subtitle: 'Your reply is preserved while offline.',
-                ),
-                _StoreTimelineStep(
-                  icon: Icons.cloud_done_outlined,
-                  title: 'Ready to resend',
-                  subtitle: 'CC Pocket retries when the connection returns.',
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StoreStatusBanner extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-  final Color color;
-  final Color foreground;
-
-  const _StoreStatusBanner({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.foreground,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.all(12),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, color: foreground),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    color: foreground,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    color: foreground.withValues(alpha: 0.78),
-                    fontSize: 12,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StoreImagePreviewCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final Color color;
-  final IconData icon;
-
-  const _StoreImagePreviewCard({
-    required this.title,
-    required this.subtitle,
-    required this.color,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      height: 176,
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: cs.outlineVariant),
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Expanded(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [color, color.withValues(alpha: 0.55)],
-                ),
-              ),
-              child: Icon(icon, size: 54, color: Colors.white),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(10),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StoreChatPreviewCard extends StatelessWidget {
-  final String label;
-  final String text;
-  final IconData icon;
-
-  const _StoreChatPreviewCard({
-    required this.label,
-    required this.text,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: cs.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          CircleAvatar(
-            radius: 17,
-            backgroundColor: cs.primaryContainer,
-            foregroundColor: cs.onPrimaryContainer,
-            child: Icon(icon, size: 18),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(text, style: const TextStyle(fontSize: 13, height: 1.35)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StoreToolPreviewCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final IconData icon;
-
-  const _StoreToolPreviewCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(13),
-      decoration: BoxDecoration(
-        border: Border.all(color: cs.outlineVariant),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Row(
-        children: [
-          Icon(icon, size: 22, color: cs.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 11, color: cs.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _StorePendingMessageCard extends StatelessWidget {
-  final String text;
-
-  const _StorePendingMessageCard({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Align(
-      alignment: Alignment.centerRight,
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 330),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: cs.primaryContainer,
-          borderRadius: const BorderRadius.only(
-            topLeft: Radius.circular(18),
-            topRight: Radius.circular(18),
-            bottomLeft: Radius.circular(18),
-            bottomRight: Radius.circular(4),
-          ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Text(
-              text,
-              style: TextStyle(color: cs.onPrimaryContainer, height: 1.35),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.schedule, size: 13, color: cs.onPrimaryContainer),
-                const SizedBox(width: 4),
-                Text(
-                  'Pending',
-                  style: TextStyle(
-                    color: cs.onPrimaryContainer,
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _StoreTimelineStep extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String subtitle;
-
-  const _StoreTimelineStep({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final cs = Theme.of(context).colorScheme;
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 34,
-            height: 34,
-            decoration: BoxDecoration(
-              color: cs.secondaryContainer,
-              borderRadius: BorderRadius.circular(17),
-            ),
-            child: Icon(icon, size: 18, color: cs.onSecondaryContainer),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  subtitle,
-                  style: TextStyle(fontSize: 12, color: cs.onSurfaceVariant),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 /// New Session route for store screenshots (with bottom sheet auto-open).
 class _StoreNewSessionRoute extends StatefulWidget {
   final DraftService? draftService;
@@ -1452,8 +908,8 @@ const _workspaceExplorerPreset = _StoreWorkspacePreset(
 const _approvalInContextPreset = _StoreWorkspacePreset(
   sessionId: _storeWorkspaceApprovalSessionId,
   projectPath: _storeWorkspaceProjectPath,
-  sessionName: 'Checkout Decisions',
-  sessionSummary: 'Decide how Codex should stage and verify the checkout diff',
+  sessionName: 'Notification Rollout',
+  sessionSummary: 'Decide how foreground notifications should behave',
   centerKind: _StoreWorkspaceCenterKind.approval,
   rightPaneKind: _StoreWorkspacePaneKind.none,
   runningKind: _StoreWorkspaceRunningKind.approvalFocus,
@@ -1462,8 +918,8 @@ const _approvalInContextPreset = _StoreWorkspacePreset(
 const _approvalQueuePreset = _StoreWorkspacePreset(
   sessionId: _storeWorkspaceApprovalSessionId,
   projectPath: _storeWorkspaceProjectPath,
-  sessionName: 'Checkout Decisions',
-  sessionSummary: 'Review Codex decisions before staging the checkout changes',
+  sessionName: 'Notification Rollout',
+  sessionSummary: 'Review the foreground notification choices before rollout',
   centerKind: _StoreWorkspaceCenterKind.approval,
   rightPaneKind: _StoreWorkspacePaneKind.none,
   runningKind: _StoreWorkspaceRunningKind.approvalQueue,
@@ -1551,7 +1007,7 @@ class _StoreWorkspaceRouteState extends State<_StoreWorkspaceRoute> {
     }
     NotificationService.instance.setActiveSession(
       sessionId: widget.preset.sessionId,
-      provider: 'codex',
+      provider: 'claude',
     );
   }
 
@@ -1560,7 +1016,7 @@ class _StoreWorkspaceRouteState extends State<_StoreWorkspaceRoute> {
     widget.draftService?.deleteDraft(widget.preset.sessionId);
     NotificationService.instance.clearActiveSession(
       sessionId: widget.preset.sessionId,
-      provider: 'codex',
+      provider: 'claude',
     );
     _sessionListCubit.close();
     _mockBridge.dispose();
@@ -1624,12 +1080,12 @@ class _StoreWorkspaceRouteState extends State<_StoreWorkspaceRoute> {
 
   Widget _buildCenterPane() {
     return switch (widget.preset.centerKind) {
-      _StoreWorkspaceCenterKind.approval => CodexSessionScreen(
+      _StoreWorkspaceCenterKind.approval => ClaudeSessionScreen(
         sessionId: widget.preset.sessionId,
         projectPath: widget.preset.projectPath,
         hideSessionBackButton: true,
       ),
-      _StoreWorkspaceCenterKind.markdown => CodexSessionScreen(
+      _StoreWorkspaceCenterKind.markdown => ClaudeSessionScreen(
         sessionId: widget.preset.sessionId,
         projectPath: widget.preset.projectPath,
         hideSessionBackButton: true,
@@ -1754,7 +1210,7 @@ List<SessionInfo> _workspaceRunningSessions(_StoreWorkspacePreset preset) {
       return [
         SessionInfo(
           id: preset.sessionId,
-          provider: 'codex',
+          provider: 'claude',
           name: preset.sessionName,
           projectPath: preset.projectPath,
           status: 'running',
@@ -1774,8 +1230,9 @@ List<SessionInfo> _workspaceRunningSessions(_StoreWorkspacePreset preset) {
           id: preset.sessionId,
           name: preset.sessionName,
           projectPath: preset.projectPath,
-          gitBranch: 'feat/checkout-redesign',
-          lastMessage: 'Waiting for your decisions on the checkout refactor.',
+          gitBranch: 'feat/notifications',
+          lastMessage:
+              'Waiting for your decisions on the notification rollout.',
           createdOffset: const Duration(minutes: 9),
           lastActivityOffset: const Duration(seconds: 20),
         ),
@@ -1787,9 +1244,9 @@ List<SessionInfo> _workspaceRunningSessions(_StoreWorkspacePreset preset) {
           id: preset.sessionId,
           name: preset.sessionName,
           projectPath: preset.projectPath,
-          gitBranch: 'feat/checkout-redesign',
+          gitBranch: 'feat/notifications',
           lastMessage:
-              'Waiting for your decisions on migration, checks, and staging.',
+              'Waiting for your decisions on foreground behavior, channels, and analytics.',
           createdOffset: const Duration(minutes: 6),
           lastActivityOffset: const Duration(seconds: 15),
         ),
@@ -1816,7 +1273,7 @@ List<SessionInfo> _workspaceRunningSessions(_StoreWorkspacePreset preset) {
         SessionInfo(
           id: 'store-queue-3',
           provider: 'claude',
-          name: 'Claude Code Plan',
+          name: 'Dark Mode Plan',
           projectPath: '/Users/dev/projects/my-portfolio',
           status: 'waiting_approval',
           createdAt: DateTime.now()
@@ -1826,7 +1283,7 @@ List<SessionInfo> _workspaceRunningSessions(_StoreWorkspacePreset preset) {
               .subtract(const Duration(minutes: 2))
               .toIso8601String(),
           gitBranch: 'feat/dark-mode',
-          lastMessage: 'Claude Code support appears alongside Codex sessions.',
+          lastMessage: 'Plan ready for dark mode rollout and QA checklist.',
           pendingPermission: const PermissionRequestMessage(
             toolUseId: 'store-queue-plan-1',
             toolName: 'ExitPlanMode',
@@ -1848,7 +1305,7 @@ SessionInfo _buildWorkspaceApprovalSession({
 }) {
   return SessionInfo(
     id: id,
-    provider: 'codex',
+    provider: 'claude',
     name: name,
     projectPath: projectPath,
     status: 'waiting_approval',
