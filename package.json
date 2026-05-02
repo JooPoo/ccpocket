@@ -23,6 +23,7 @@
     "functions:typecheck": "npm --prefix functions run typecheck",
     "functions:build": "npm --prefix functions run build",
     "functions:deploy": "npm --prefix functions run deploy",
+    "release-card": "node scripts/release-card/generate.mjs",
     "shorebird:patch:android": "bash .claude/skills/shorebird-patch/patch.sh android",
     "shorebird:patch:ios": "bash .claude/skills/shorebird-patch/patch.sh ios",
     "shorebird:promote": "bash .claude/skills/shorebird-patch/promote.sh"
