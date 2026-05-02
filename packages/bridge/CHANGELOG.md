@@ -2,6 +2,12 @@
 
 All notable changes to `@ccpocket/bridge` will be documented in this file.
 
+## [1.53.0] - 2026-05-02
+
+### Added
+- Add Codex conversation rewind and fork recovery using official app-server thread RPCs.
+- Restore Codex thread history from `thread/read` responses with JSONL history as a fallback.
+
 ## [1.52.2] - 2026-05-02
 
 ### Fixed
