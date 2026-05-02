@@ -29,6 +29,7 @@ const {
 vi.mock("./sessions-index.js", () => ({
   getSessionHistory: getSessionHistoryMock,
   getCodexSessionHistory: getCodexSessionHistoryMock,
+  codexUserTurnUuid: (ordinal: number) => `codex:user-turn:${ordinal}`,
   getAllRecentSessions: getAllRecentSessionsMock,
   saveCodexSessionProfile: saveCodexSessionProfileMock,
 }));
@@ -93,6 +94,10 @@ vi.mock("./session.js", () => ({
     ): string {
       const id = `s-${++this.seq}`;
       const process = {
+        status: "idle",
+        sessionId: codexOptions && typeof codexOptions === "object" && "threadId" in codexOptions
+          ? (codexOptions as { threadId?: string }).threadId
+          : options?.sessionId,
         isWaitingForInput: true,
         setPermissionMode: vi.fn(async () => {}),
         approvalPolicy: "never",
@@ -108,6 +113,7 @@ vi.mock("./session.js", () => ({
           this.collaborationMode = value;
         }),
         listThreads: vi.fn(async () => ({ data: [], nextCursor: null })),
+        rollbackThread: vi.fn(async () => {}),
         sendInput: vi.fn(() => false),
         sendInputWithImage: vi.fn(),
         sendInputWithImages: vi.fn(() => false),
@@ -2349,6 +2355,176 @@ describe("BridgeWebSocketServer resume/get_history flow", () => {
     const sessionList = sent.find((m: any) => m.type === "session_list");
     expect(sessionList.sessions[0].queuedInput).toMatchObject({
       text: "while busy",
+    });
+
+    bridge.close();
+  });
+
+  it("adds synthetic UUIDs to live codex user input", async () => {
+    const bridge = new BridgeWebSocketServer({ server: httpServer });
+    const ws = {
+      readyState: OPEN_STATE,
+      send: vi.fn(),
+    } as any;
+
+    (bridge as any).handleClientMessage(
+      {
+        type: "start",
+        projectPath: "/tmp/project-codex",
+        provider: "codex",
+      },
+      ws,
+    );
+    await Promise.resolve();
+
+    const created = ws.send.mock.calls
+      .map((c: unknown[]) => JSON.parse(c[0] as string))
+      .find((m: any) => m.type === "system" && m.subtype === "session_created");
+    const sessionId = created.sessionId as string;
+
+    (bridge as any).handleClientMessage(
+      {
+        type: "input",
+        sessionId,
+        text: "first codex turn",
+      },
+      ws,
+    );
+
+    const session = (bridge as any).sessionManager.get(sessionId);
+    const userInput = session.history.find((message: any) => message.type === "user_input");
+    expect(userInput).toMatchObject({
+      type: "user_input",
+      text: "first codex turn",
+      userMessageUuid: "codex:user-turn:1",
+    });
+
+    bridge.close();
+  });
+
+  it("rolls back codex conversation turns and recreates the bridge session", async () => {
+    const bridge = new BridgeWebSocketServer({ server: httpServer });
+    const ws = {
+      readyState: OPEN_STATE,
+      send: vi.fn(),
+    } as any;
+    getCodexSessionHistoryMock.mockResolvedValue([
+      {
+        role: "user",
+        uuid: "codex:user-turn:1",
+        content: [{ type: "text", text: "first codex turn" }],
+      },
+    ]);
+
+    (bridge as any).handleClientMessage(
+      {
+        type: "start",
+        projectPath: "/tmp/project-codex",
+        provider: "codex",
+      },
+      ws,
+    );
+    await Promise.resolve();
+
+    const created = ws.send.mock.calls
+      .map((c: unknown[]) => JSON.parse(c[0] as string))
+      .find((m: any) => m.type === "system" && m.subtype === "session_created");
+    const sessionId = created.sessionId as string;
+    const session = (bridge as any).sessionManager.get(sessionId);
+    session.claudeSessionId = "thread-rollback";
+    session.process.sessionId = "thread-rollback";
+    session.pastMessages = [
+      {
+        role: "user",
+        uuid: "codex:user-turn:1",
+        content: [{ type: "text", text: "first codex turn" }],
+      },
+      {
+        role: "assistant",
+        content: [{ type: "text", text: "first answer" }],
+      },
+      {
+        role: "user",
+        uuid: "codex:user-turn:2",
+        content: [{ type: "text", text: "second codex turn" }],
+      },
+    ];
+    const rollbackThread = session.process.rollbackThread;
+
+    ws.send.mockClear();
+    await (bridge as any).handleClientMessage(
+      {
+        type: "rewind",
+        sessionId,
+        targetUuid: "codex:user-turn:1",
+        mode: "conversation",
+      },
+      ws,
+    );
+    await Promise.resolve();
+
+    expect(rollbackThread).toHaveBeenCalledWith(1);
+    expect(getCodexSessionHistoryMock).toHaveBeenCalledWith("thread-rollback");
+
+    const sends = ws.send.mock.calls.map((c: unknown[]) => JSON.parse(c[0] as string));
+    expect(sends.find((m: any) => m.type === "rewind_result")).toMatchObject({
+      success: true,
+      mode: "conversation",
+    });
+    const newCreated = sends.find(
+      (m: any) => m.type === "system" && m.subtype === "session_created",
+    );
+    expect(newCreated).toMatchObject({
+      provider: "codex",
+      projectPath: "/tmp/project-codex",
+      sourceSessionId: sessionId,
+    });
+    const newSession = (bridge as any).sessionManager.get(newCreated.sessionId);
+    expect(newSession.codexOptions).toMatchObject({ threadId: "thread-rollback" });
+    expect(newSession.pastMessages).toHaveLength(1);
+
+    bridge.close();
+  });
+
+  it("rejects codex code rewind modes", async () => {
+    const bridge = new BridgeWebSocketServer({ server: httpServer });
+    const ws = {
+      readyState: OPEN_STATE,
+      send: vi.fn(),
+    } as any;
+
+    (bridge as any).handleClientMessage(
+      {
+        type: "start",
+        projectPath: "/tmp/project-codex",
+        provider: "codex",
+      },
+      ws,
+    );
+    await Promise.resolve();
+
+    const created = ws.send.mock.calls
+      .map((c: unknown[]) => JSON.parse(c[0] as string))
+      .find((m: any) => m.type === "system" && m.subtype === "session_created");
+    ws.send.mockClear();
+
+    await (bridge as any).handleClientMessage(
+      {
+        type: "rewind",
+        sessionId: created.sessionId,
+        targetUuid: "codex:user-turn:1",
+        mode: "code",
+      },
+      ws,
+    );
+
+    const result = ws.send.mock.calls
+      .map((c: unknown[]) => JSON.parse(c[0] as string))
+      .find((m: any) => m.type === "rewind_result");
+    expect(result).toMatchObject({
+      success: false,
+      mode: "code",
+      error: "Codex only supports conversation rewind",
     });
 
     bridge.close();

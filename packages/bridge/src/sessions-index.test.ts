@@ -774,9 +774,62 @@ describe("codex sessions integration", () => {
     const history = await getCodexSessionHistory(threadId);
     expect(history).toHaveLength(2);
     expect(history[0].role).toBe("user");
+    expect(history[0].uuid).toBe("codex:user-turn:1");
     expect(history[0].content[0].text).toBe("show me the diff");
     expect(history[1].role).toBe("assistant");
     expect(history[1].content[0].text).toBe("Here is the diff summary.");
+  });
+
+  it("trims codex history after thread_rolled_back events", async () => {
+    const threadId = "019c56c0-d4d8-7b22-9e3c-200664d68013";
+    const codexDir = join(tempHome, ".codex", "sessions", "2026", "02", "13");
+    mkdirSync(codexDir, { recursive: true });
+
+    const lines = [
+      JSON.stringify({
+        type: "session_meta",
+        payload: { id: threadId, cwd: "/tmp/project-a" },
+      }),
+      JSON.stringify({
+        type: "event_msg",
+        payload: { type: "user_message", message: "first turn" },
+      }),
+      JSON.stringify({
+        type: "response_item",
+        payload: {
+          type: "message",
+          role: "assistant",
+          content: [{ type: "output_text", text: "first answer" }],
+        },
+      }),
+      JSON.stringify({
+        type: "event_msg",
+        payload: { type: "user_message", message: "second turn" },
+      }),
+      JSON.stringify({
+        type: "response_item",
+        payload: {
+          type: "message",
+          role: "assistant",
+          content: [{ type: "output_text", text: "second answer" }],
+        },
+      }),
+      JSON.stringify({
+        type: "event_msg",
+        payload: { type: "thread_rolled_back", num_turns: 1 },
+      }),
+    ];
+    writeFileSync(
+      join(codexDir, `rollout-2026-02-13T11-26-43-${threadId}.jsonl`),
+      lines.join("\n"),
+    );
+
+    const history = await getCodexSessionHistory(threadId);
+    expect(history.map((message) => message.content[0].text)).toEqual([
+      "first turn",
+      "first answer",
+    ]);
+    expect(history[0].uuid).toBe("codex:user-turn:1");
   });
 
   it("restores codex tool-use history from response_item entries", async () => {
@@ -855,6 +908,7 @@ describe("codex sessions integration", () => {
     expect(history).toHaveLength(5);
     expect(history[0]).toEqual({
       role: "user",
+      uuid: "codex:user-turn:1",
       content: [{ type: "text", text: "check simulator status" }],
     });
     expect(history[1]).toEqual({
@@ -943,6 +997,7 @@ describe("codex sessions integration", () => {
     expect(history).toHaveLength(3);
     expect(history[0]).toEqual({
       role: "user",
+      uuid: "codex:user-turn:1",
       content: [{ type: "text", text: "inspect chrome" }],
     });
     expect(history[1].content[0].type).toBe("tool_use");
@@ -1017,6 +1072,7 @@ describe("codex sessions integration", () => {
     expect(history).toEqual([
       {
         role: "user",
+        uuid: "codex:user-turn:1",
         content: [{ type: "text", text: "$imagegen make a hero" }],
       },
       {
@@ -1066,6 +1122,7 @@ describe("codex sessions integration", () => {
     expect(history).toEqual([
       {
         role: "user",
+        uuid: "codex:user-turn:1",
         content: [{ type: "text", text: "$imagegen make a hero" }],
       },
       {
@@ -1109,6 +1166,7 @@ describe("codex sessions integration", () => {
     expect(history).toEqual([
       {
         role: "user",
+        uuid: "codex:user-turn:1",
         content: [{ type: "text", text: "[Image attached x2]" }],
         imageCount: 2,
       },
@@ -1157,6 +1215,7 @@ describe("codex sessions integration", () => {
     expect(history).toEqual([
       {
         role: "user",
+        uuid: "codex:user-turn:1",
         content: [{ type: "text", text: "legacy tool schema" }],
       },
       {

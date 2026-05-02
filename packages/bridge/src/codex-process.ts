@@ -381,6 +381,16 @@ export class CodexProcess extends EventEmitter<CodexProcessEvents> {
     await this.request("thread/archive", { threadId });
   }
 
+  async rollbackThread(numTurns: number): Promise<void> {
+    if (!this._threadId) {
+      throw new Error("No thread ID available for rollback");
+    }
+    await this.request("thread/rollback", {
+      threadId: this._threadId,
+      numTurns,
+    });
+  }
+
   async listThreads(
     params: {
       limit?: number;

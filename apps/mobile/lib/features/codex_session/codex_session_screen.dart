@@ -47,6 +47,7 @@ import '../explore/state/explore_state.dart';
 import '../git/state/git_status_cubit.dart';
 import '../git/state/git_view_cache_service.dart';
 import '../../router/app_router.dart';
+import '../claude_session/widgets/rewind_action_sheet.dart';
 import '../claude_session/widgets/rewind_message_list_sheet.dart'
     show UserMessageHistorySheet;
 import 'state/codex_session_cubit.dart';
@@ -72,7 +73,7 @@ class _NoopListenable implements Listenable {
 
 /// Codex-specific chat screen.
 ///
-/// Simpler than [ClaudeSessionScreen] — no rewind.
+/// Simpler than [ClaudeSessionScreen].
 /// Shares UI components (`ChatMessageList`, `ChatInputWithOverlays`, etc.)
 /// via [CodexSessionCubit] which extends [ChatSessionCubit].
 @RoutePage()
@@ -1199,7 +1200,9 @@ class _CodexChatBody extends HookWidget {
                       httpBaseUrl: context.read<BridgeService>().httpBaseUrl,
                       projectPath: effectiveProjectPath,
                       onRetryMessage: null,
-                      onRewindMessage: null,
+                      onRewindMessage: (entry) {
+                        _showCodexRewindActionSheet(context, entry);
+                      },
                       scrollToUserEntry: scrollToUserEntry,
                       collapseToolResults: collapseToolResults,
                       bottomPadding: 8,
@@ -1562,8 +1565,37 @@ void _showUserMessageHistory(
       onScrollToMessage: (msg) {
         scrollToUserEntry.value = msg;
       },
-      // No rewind for Codex sessions
+      onRewindMessage: (msg) => _showCodexRewindActionSheet(context, msg),
     ),
+  );
+}
+
+void _showCodexRewindActionSheet(BuildContext context, UserChatEntry message) {
+  final cubit = context.read<ChatSessionCubit>();
+  final rewindable = cubit.rewindableUserMessages;
+  final latestUuid = rewindable.isNotEmpty ? rewindable.last.messageUuid : null;
+
+  if (message.messageUuid == null) return;
+  if (message.messageUuid == latestUuid) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('No newer turns to rewind')));
+    return;
+  }
+
+  showModalBottomSheet<void>(
+    context: context,
+    builder: (ctx) {
+      return RewindActionSheet(
+        userMessage: message,
+        availableModes: const [RewindMode.conversation],
+        showPreview: false,
+        onRewind: (mode) {
+          Navigator.of(ctx).pop();
+          cubit.rewind(message.messageUuid!, mode.value);
+        },
+      );
+    },
   );
 }
 

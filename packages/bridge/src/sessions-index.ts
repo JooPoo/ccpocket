@@ -1671,6 +1671,10 @@ export interface SessionHistoryMessage {
   content: string | SessionHistoryContentItem[];
 }
 
+export function codexUserTurnUuid(ordinal: number): string {
+  return `codex:user-turn:${ordinal}`;
+}
+
 function asObject(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null;
@@ -1695,9 +1699,10 @@ function appendTextMessage(
   role: "user" | "assistant",
   text: string,
   timestamp?: string,
-): void {
+  uuid?: string,
+): boolean {
   const normalized = text.trim();
-  if (!normalized) return;
+  if (!normalized) return false;
 
   const last = messages.at(-1);
   if (
@@ -1709,14 +1714,43 @@ function appendTextMessage(
     && typeof last.content[0].text === "string"
     && last.content[0].text.trim() === normalized
   ) {
-    return;
+    return false;
   }
 
   messages.push({
     role,
+    ...(uuid ? { uuid } : {}),
     content: [{ type: "text", text }],
     ...(timestamp ? { timestamp } : {}),
   });
+  return true;
+}
+
+function countCodexUserTurns(messages: SessionHistoryMessage[]): number {
+  return messages.filter((message) => message.role === "user" && !message.isMeta)
+    .length;
+}
+
+function applyCodexThreadRollback(
+  messages: SessionHistoryMessage[],
+  numTurns: number,
+): void {
+  if (!Number.isFinite(numTurns) || numTurns <= 0) return;
+
+  const userIndices = messages
+    .map((message, index) =>
+      message.role === "user" && !message.isMeta ? index : -1,
+    )
+    .filter((index) => index >= 0);
+  if (userIndices.length === 0) return;
+  if (numTurns >= userIndices.length) {
+    messages.length = 0;
+    return;
+  }
+
+  const keepUserTurns = userIndices.length - numTurns;
+  const cutIndex = userIndices[keepUserTurns];
+  messages.splice(cutIndex);
 }
 
 function appendImageGenerationResult(
@@ -2306,6 +2340,7 @@ export async function getCodexSessionHistory(
 
   const messages: SessionHistoryMessage[] = [];
   const lines = raw.split("\n");
+  let userTurnOrdinal = 0;
 
   for (const [index, line] of lines.entries()) {
     if (!line.trim()) continue;
@@ -2321,6 +2356,15 @@ export async function getCodexSessionHistory(
     if (entry.type === "event_msg") {
       const payload = asObject(entry.payload);
       if (!payload) continue;
+
+      if (payload.type === "thread_rolled_back") {
+        const rawNumTurns = payload.num_turns ?? payload.numTurns;
+        const numTurns =
+          typeof rawNumTurns === "number" ? rawNumTurns : Number(rawNumTurns);
+        applyCodexThreadRollback(messages, numTurns);
+        userTurnOrdinal = countCodexUserTurns(messages);
+        continue;
+      }
 
       if (payload.type === "user_message") {
         const rawMessage = typeof payload.message === "string" ? payload.message : "";
@@ -2341,13 +2385,22 @@ export async function getCodexSessionHistory(
           if (normalized) {
             messages.push({
               role: "user",
+              uuid: codexUserTurnUuid(++userTurnOrdinal),
               content: [{ type: "text", text }],
               imageCount,
               ...(entryTimestamp ? { timestamp: entryTimestamp } : {}),
             });
           }
         } else {
-          appendTextMessage(messages, "user", text, entryTimestamp);
+          if (appendTextMessage(
+            messages,
+            "user",
+            text,
+            entryTimestamp,
+            codexUserTurnUuid(userTurnOrdinal + 1),
+          )) {
+            userTurnOrdinal += 1;
+          }
         }
         continue;
       }
@@ -2414,7 +2467,15 @@ export async function getCodexSessionHistory(
             .map((item) => item.text as string)
             .join("\n");
           if (!isCodexInjectedUserContext(text)) {
-            appendTextMessage(messages, "user", text, entryTimestamp);
+            if (appendTextMessage(
+              messages,
+              "user",
+              text,
+              entryTimestamp,
+              codexUserTurnUuid(userTurnOrdinal + 1),
+            )) {
+              userTurnOrdinal += 1;
+            }
           }
           continue;
         }

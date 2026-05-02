@@ -354,6 +354,44 @@ describe("CodexProcess (app-server)", () => {
     );
   });
 
+  it("sends thread/rollback for the active thread", async () => {
+    const proc = new CodexProcess("linux");
+    proc.start("/tmp/project-a");
+
+    const child = fakeChildren[0];
+    await tick();
+
+    const initReq = nextOutgoingRequest(child);
+    child.stdout.emit(
+      "data",
+      `${JSON.stringify({ id: initReq.id, result: {} })}\n`,
+    );
+
+    await tick();
+    nextOutgoingNotification(child);
+    const startReq = nextOutgoingRequest(child);
+    child.stdout.emit(
+      "data",
+      `${JSON.stringify({ id: startReq.id, result: { thread: { id: "thr_rollback" } } })}\n`,
+    );
+    await tick();
+    drainSkillsList(child);
+
+    const rollbackPromise = proc.rollbackThread(2);
+    const rollbackReq = nextOutgoingRequest(child);
+    expect(rollbackReq.method).toBe("thread/rollback");
+    expect(rollbackReq.params).toEqual({
+      threadId: "thr_rollback",
+      numTurns: 2,
+    });
+
+    child.stdout.emit(
+      "data",
+      `${JSON.stringify({ id: rollbackReq.id, result: {} })}\n`,
+    );
+    await expect(rollbackPromise).resolves.toBeUndefined();
+  });
+
   it("ignores placeholder codex model names from resume state", async () => {
     const proc = new CodexProcess("linux");
     const messages: unknown[] = [];

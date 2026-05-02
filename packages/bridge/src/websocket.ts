@@ -13,7 +13,11 @@ import {
 } from "./session.js";
 import { SdkProcess } from "./sdk-process.js";
 import type { StartOptions } from "./sdk-process.js";
-import { CodexProcess, type CodexThreadSummary } from "./codex-process.js";
+import {
+  CodexProcess,
+  type CodexStartOptions,
+  type CodexThreadSummary,
+} from "./codex-process.js";
 import {
   parseClientMessage,
   type ClientMessage,
@@ -26,6 +30,7 @@ import {
   getAllRecentSessions,
   getCodexSessionHistory,
   getSessionHistory,
+  codexUserTurnUuid,
   findSessionsByClaudeIds,
   extractMessageImages,
   getClaudeSessionName,
@@ -108,10 +113,55 @@ const CODEX_MODELS: string[] = [
   "gpt-5.3-codex-spark",
 ];
 
+const CODEX_USER_TURN_UUID_RE = /^codex:user-turn:(\d+)$/;
+
 const OPT_IN_SERVER_MESSAGES = new Set<string>([
   "conversation_queue",
   "prompt_history_status",
 ]);
+
+function parseCodexUserTurnOrdinal(uuid: string | undefined): number | null {
+  if (!uuid) return null;
+  const match = uuid.match(CODEX_USER_TURN_UUID_RE);
+  if (!match) return null;
+  const ordinal = Number(match[1]);
+  return Number.isInteger(ordinal) && ordinal > 0 ? ordinal : null;
+}
+
+function countCodexUserTurnsInSession(session: SessionInfo): number {
+  let count = 0;
+  let maxOrdinal = 0;
+
+  const observe = (uuid?: string): void => {
+    count += 1;
+    const ordinal = parseCodexUserTurnOrdinal(uuid);
+    if (ordinal !== null) {
+      maxOrdinal = Math.max(maxOrdinal, ordinal);
+    }
+  };
+
+  if (Array.isArray(session.pastMessages)) {
+    for (const message of session.pastMessages) {
+      if (!message || typeof message !== "object") continue;
+      const item = message as { role?: unknown; uuid?: unknown; isMeta?: unknown };
+      if (item.role === "user" && item.isMeta !== true) {
+        observe(typeof item.uuid === "string" ? item.uuid : undefined);
+      }
+    }
+  }
+
+  for (const message of session.history) {
+    if (message.type === "user_input") {
+      observe(message.userMessageUuid);
+    }
+  }
+
+  return Math.max(count, maxOrdinal);
+}
+
+function nextCodexUserTurnUuid(session: SessionInfo): string {
+  return codexUserTurnUuid(countCodexUserTurnsInSession(session) + 1);
+}
 
 // ---- Codex mode mapping helpers ----
 
@@ -608,6 +658,144 @@ export class BridgeWebSocketServer {
     }
 
     return msg;
+  }
+
+  private async rewindCodexConversation(
+    ws: WebSocket,
+    sessionId: string,
+    targetUuid: string,
+    mode: "conversation" | "code" | "both",
+  ): Promise<void> {
+    if (mode !== "conversation") {
+      this.send(ws, {
+        type: "rewind_result",
+        success: false,
+        mode,
+        error: "Codex only supports conversation rewind",
+      });
+      return;
+    }
+
+    const session = this.sessionManager.get(sessionId);
+    if (!session) {
+      this.send(ws, {
+        type: "rewind_result",
+        success: false,
+        mode,
+        error: `Session ${sessionId} not found`,
+      });
+      return;
+    }
+    const codexProcess = session.process as CodexProcess;
+    if (
+      session.provider !== "codex" ||
+      typeof codexProcess.rollbackThread !== "function"
+    ) {
+      this.send(ws, {
+        type: "rewind_result",
+        success: false,
+        mode,
+        error: "Session is not a Codex session",
+      });
+      return;
+    }
+    if (session.status !== "idle" || (codexProcess.status ?? session.status) !== "idle") {
+      this.send(ws, {
+        type: "rewind_result",
+        success: false,
+        mode,
+        error: "Cannot rewind while Codex is running",
+      });
+      return;
+    }
+    if (session.codexQueuedInput) {
+      this.send(ws, {
+        type: "rewind_result",
+        success: false,
+        mode,
+        error: "Cannot rewind while Codex has queued input",
+      });
+      return;
+    }
+
+    const targetOrdinal = parseCodexUserTurnOrdinal(targetUuid);
+    const totalUserTurns = countCodexUserTurnsInSession(session);
+    if (targetOrdinal === null || targetOrdinal > totalUserTurns) {
+      this.send(ws, {
+        type: "rewind_result",
+        success: false,
+        mode,
+        error: "Invalid Codex rewind target",
+      });
+      return;
+    }
+
+    const numTurns = totalUserTurns - targetOrdinal;
+    if (numTurns <= 0) {
+      this.send(ws, {
+        type: "rewind_result",
+        success: false,
+        mode,
+        error: "No newer turns to rewind",
+      });
+      return;
+    }
+
+    const threadId = codexProcess.sessionId ?? session.claudeSessionId;
+    if (!threadId) {
+      this.send(ws, {
+        type: "rewind_result",
+        success: false,
+        mode,
+        error: "No Codex thread ID available for rewind",
+      });
+      return;
+    }
+
+    const projectPath = session.projectPath;
+    const codexSettings = session.codexSettings;
+    const worktreeOpts: WorktreeOptions | undefined = session.worktreePath
+      ? {
+          existingWorktreePath: session.worktreePath,
+          worktreeBranch: session.worktreeBranch,
+        }
+      : undefined;
+
+    await codexProcess.rollbackThread(numTurns);
+
+    const pastMessages = await getCodexSessionHistory(threadId);
+    this.sessionManager.destroy(sessionId);
+    const newSessionId = this.sessionManager.create(
+      projectPath,
+      undefined,
+      pastMessages,
+      worktreeOpts,
+      "codex",
+      {
+        ...(codexSettings ?? {}),
+        threadId,
+      } as CodexStartOptions,
+    );
+    const newSession = this.sessionManager.get(newSessionId);
+
+    this.send(ws, {
+      type: "rewind_result",
+      success: true,
+      mode,
+    });
+    this.send(
+      ws,
+      this.buildSessionCreatedMessage({
+        sessionId: newSessionId,
+        provider: "codex",
+        projectPath,
+        session: newSession,
+        approvalsReviewer: codexSettings?.approvalsReviewer,
+        sandboxMode: codexSettings?.sandboxMode,
+        sourceSessionId: sessionId,
+      }),
+    );
+    this.sendSessionList(ws);
   }
 
   private sendTip(
@@ -1169,6 +1357,7 @@ export class BridgeWebSocketServer {
             itemId: randomUUID(),
             text,
             createdAt: new Date().toISOString(),
+            userMessageUuid: nextCodexUserTurnUuid(session),
             ...(images.length > 0 ? { imageCount: images.length, images } : {}),
             ...(imageRefs ? { imageRefs } : {}),
             ...(codexSkills.length > 0 ? { skills: codexSkills } : {}),
@@ -1213,6 +1402,9 @@ export class BridgeWebSocketServer {
         const userEntry = this.sessionManager.appendHistory(session.id, {
           type: "user_input",
           text,
+          ...(session.provider === "codex"
+            ? { userMessageUuid: nextCodexUserTurnUuid(session) }
+            : {}),
           ...(clientMessageId ? { clientMessageId } : {}),
           timestamp: new Date().toISOString(),
           ...(images.length > 0 ? { imageCount: images.length } : {}),
@@ -3793,6 +3985,14 @@ export class BridgeWebSocketServer {
           });
           return;
         }
+        if (session.provider === "codex") {
+          this.send(ws, {
+            type: "rewind_preview",
+            canRewind: false,
+            error: "Codex rewind does not restore files",
+          });
+          return;
+        }
         this.sessionManager
           .rewindFiles(msg.sessionId, msg.targetUuid, true)
           .then((result) => {
@@ -3836,6 +4036,12 @@ export class BridgeWebSocketServer {
             error: errMsg,
           });
         };
+
+        if (session.provider === "codex") {
+          this.rewindCodexConversation(ws, msg.sessionId, msg.targetUuid, msg.mode)
+            .catch(handleError);
+          break;
+        }
 
         if (msg.mode === "code") {
           // Code-only rewind: rewind files without restarting the conversation

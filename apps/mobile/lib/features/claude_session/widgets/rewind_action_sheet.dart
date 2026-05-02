@@ -27,6 +27,8 @@ class RewindActionSheet extends StatelessWidget {
   final UserChatEntry userMessage;
   final RewindPreviewMessage? preview;
   final bool isLoadingPreview;
+  final List<RewindMode> availableModes;
+  final bool showPreview;
   final void Function(RewindMode mode) onRewind;
 
   const RewindActionSheet({
@@ -34,6 +36,12 @@ class RewindActionSheet extends StatelessWidget {
     required this.userMessage,
     this.preview,
     this.isLoadingPreview = false,
+    this.availableModes = const [
+      RewindMode.both,
+      RewindMode.conversation,
+      RewindMode.code,
+    ],
+    this.showPreview = true,
     required this.onRewind,
   });
 
@@ -99,7 +107,7 @@ class RewindActionSheet extends StatelessWidget {
             const SizedBox(height: 12),
 
             // Dry-run preview
-            if (isLoadingPreview)
+            if (showPreview && isLoadingPreview)
               const Padding(
                 padding: EdgeInsets.symmetric(vertical: 8),
                 child: Center(
@@ -110,13 +118,13 @@ class RewindActionSheet extends StatelessWidget {
                   ),
                 ),
               )
-            else if (preview != null) ...[
+            else if (showPreview && preview != null) ...[
               _RewindPreviewInfo(preview: preview!),
               const SizedBox(height: 12),
             ],
 
             // Rewind options
-            ...RewindMode.values.map(
+            ...availableModes.map(
               (mode) => _RewindOptionTile(
                 mode: mode,
                 preview: preview,
