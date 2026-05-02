@@ -1085,7 +1085,7 @@ describe("BridgeWebSocketServer resume/get_history flow", () => {
         ws,
       );
 
-      await new Promise((resolveDelay) => setTimeout(resolveDelay, 25));
+      await expect.poll(() => ws.send.mock.calls.length).toBeGreaterThan(0);
 
       const sends = ws.send.mock.calls.map((c: unknown[]) =>
         JSON.parse(c[0] as string),
@@ -1128,7 +1128,7 @@ describe("BridgeWebSocketServer resume/get_history flow", () => {
         ws,
       );
 
-      await new Promise((resolveDelay) => setTimeout(resolveDelay, 25));
+      await expect.poll(() => ws.send.mock.calls.length).toBeGreaterThan(0);
 
       const sends = ws.send.mock.calls.map((c: unknown[]) =>
         JSON.parse(c[0] as string),
@@ -1174,7 +1174,7 @@ describe("BridgeWebSocketServer resume/get_history flow", () => {
         ws,
       );
 
-      await new Promise((resolveDelay) => setTimeout(resolveDelay, 25));
+      await expect.poll(() => ws.send.mock.calls.length).toBeGreaterThan(0);
 
       const sends = ws.send.mock.calls.map((c: unknown[]) =>
         JSON.parse(c[0] as string),

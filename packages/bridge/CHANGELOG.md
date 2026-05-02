@@ -2,6 +2,11 @@
 
 All notable changes to `@ccpocket/bridge` will be documented in this file.
 
+## [1.52.2] - 2026-05-02
+
+### Fixed
+- Stabilize asynchronous file peek tests in release CI.
+
 ## [1.52.1] - 2026-05-02
 
 ### Fixed
