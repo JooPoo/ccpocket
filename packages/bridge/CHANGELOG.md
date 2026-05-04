@@ -2,6 +2,11 @@
 
 All notable changes to `@ccpocket/bridge` will be documented in this file.
 
+## [1.54.0] - 2026-05-04
+
+### Added
+- Add Claude Opus 4.5 to the available Claude model list.
+
 ## [1.53.2] - 2026-05-04
 
 ### Fixed
