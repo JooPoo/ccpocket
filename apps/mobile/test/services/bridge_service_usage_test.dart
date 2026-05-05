@@ -772,6 +772,148 @@ void main() {
       bridge.dispose();
     });
 
+    test(
+      'clears connected pending start when session_created path differs',
+      () async {
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        final socketReady = Completer<WebSocket>();
+
+        server.transform(WebSocketTransformer()).listen((socket) {
+          socketReady.complete(socket);
+        });
+
+        final bridge = BridgeService();
+        bridge.connect('ws://127.0.0.1:${server.port}');
+        final socket = await socketReady.future;
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        bridge.send(
+          ClientMessage.start(
+            '/mnt/obsidian-data/obsidian-vault',
+            provider: 'codex',
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 650));
+
+        expect(bridge.offlinePendingActions, hasLength(1));
+
+        socket.add(
+          jsonEncode({
+            'type': 'system',
+            'subtype': 'session_created',
+            'sessionId': 'running-1',
+            'provider': 'codex',
+            'projectPath': '/home/user/obsidian-vault',
+          }),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(bridge.offlinePendingActions, isEmpty);
+
+        bridge.disconnect();
+        await socket.close();
+        await server.close(force: true);
+        bridge.dispose();
+      },
+    );
+
+    test(
+      'session_list clears stale pending start for active session',
+      () async {
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        final socketReady = Completer<WebSocket>();
+
+        server.transform(WebSocketTransformer()).listen((socket) {
+          socketReady.complete(socket);
+        });
+
+        final bridge = BridgeService();
+        bridge.connect('ws://127.0.0.1:${server.port}');
+        final socket = await socketReady.future;
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        bridge.send(
+          ClientMessage.start(
+            '/mnt/obsidian-data/obsidian-vault',
+            provider: 'codex',
+          ),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 650));
+
+        expect(bridge.offlinePendingActions, hasLength(1));
+
+        socket.add(
+          jsonEncode({
+            'type': 'session_list',
+            'sessions': [
+              {
+                'id': 'running-1',
+                'provider': 'codex',
+                'projectPath': '/home/user/obsidian-vault',
+                'status': 'running',
+              },
+            ],
+          }),
+        );
+        await Future<void>.delayed(const Duration(milliseconds: 50));
+
+        expect(bridge.offlinePendingActions, isEmpty);
+        expect(bridge.sessions.single.id, 'running-1');
+
+        bridge.disconnect();
+        await socket.close();
+        await server.close(force: true);
+        bridge.dispose();
+      },
+    );
+
+    test('session_list keeps pending start for a different project', () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final socketReady = Completer<WebSocket>();
+
+      server.transform(WebSocketTransformer()).listen((socket) {
+        socketReady.complete(socket);
+      });
+
+      final bridge = BridgeService();
+      bridge.connect('ws://127.0.0.1:${server.port}');
+      final socket = await socketReady.future;
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      bridge.send(
+        ClientMessage.start('/home/user/project-a', provider: 'codex'),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 650));
+
+      expect(bridge.offlinePendingActions, hasLength(1));
+
+      socket.add(
+        jsonEncode({
+          'type': 'session_list',
+          'sessions': [
+            {
+              'id': 'running-1',
+              'provider': 'codex',
+              'projectPath': '/home/user/project-b',
+              'status': 'running',
+            },
+          ],
+        }),
+      );
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+
+      expect(bridge.offlinePendingActions, hasLength(1));
+      expect(
+        bridge.offlinePendingActions.single.projectPath,
+        '/home/user/project-a',
+      );
+
+      bridge.disconnect();
+      await socket.close();
+      await server.close(force: true);
+      bridge.dispose();
+    });
+
     test('requeues in-flight pending start when socket closes', () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       final socketReady = Completer<WebSocket>();

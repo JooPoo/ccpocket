@@ -372,6 +372,7 @@ class BridgeService implements BridgeServiceBase {
                 :final bridgeVersion,
               ):
                 _sessions = _applyLocalDeliveryPendingInputs(sessions);
+                _clearPendingStartActionsForSessions(_sessions);
                 _sessionListController.add(_sessions);
                 _allowedDirs = allowedDirs;
                 _claudeModels = claudeModels;
@@ -1006,6 +1007,30 @@ class BridgeService implements BridgeServiceBase {
     _offlinePendingActionsController.add(_offlinePendingActions);
   }
 
+  bool _samePendingProjectPath(String a, String b) {
+    String normalize(String value) {
+      final trimmed = value.trim();
+      if (trimmed == '/') return trimmed;
+      return trimmed.replaceAll(RegExp(r'/+$'), '');
+    }
+
+    return normalize(a) == normalize(b);
+  }
+
+  bool _compatiblePendingProjectPath(String a, String b) {
+    if (_samePendingProjectPath(a, b)) return true;
+
+    String basename(String value) {
+      final normalized = value.trim().replaceAll(RegExp(r'/+$'), '');
+      final parts = normalized.split('/').where((part) => part.isNotEmpty);
+      return parts.isEmpty ? normalized : parts.last;
+    }
+
+    final left = basename(a);
+    final right = basename(b);
+    return left.isNotEmpty && left == right;
+  }
+
   Future<void> cancelOfflinePendingAction(String actionId) async {
     await _ensureOfflineQueueRestored();
     _messageQueue.removeWhere((message) {
@@ -1032,10 +1057,11 @@ class BridgeService implements BridgeServiceBase {
     bool matches(ClientMessage pending) {
       final action = _offlinePendingActionFor(pending);
       if (action == null || action.provider != provider) return false;
-      if (projectPath != null && action.projectPath != projectPath) {
+      if (action.kind == OfflinePendingActionKind.start) return false;
+      if (projectPath != null &&
+          !_samePendingProjectPath(action.projectPath, projectPath)) {
         return false;
       }
-      if (action.kind == OfflinePendingActionKind.start) return true;
       return action.sessionId == claudeSessionId ||
           action.sessionId == sourceSessionId ||
           (claudeSessionId == null && sourceSessionId == null);
@@ -1043,7 +1069,13 @@ class BridgeService implements BridgeServiceBase {
 
     var removed = false;
     for (final entry in List.of(_inFlightPendingMessages.entries)) {
-      if (!matches(entry.value)) continue;
+      if (!_shouldClearPendingStartForSessionCreated(
+        entry.value,
+        provider: provider,
+        projectPath: projectPath,
+      )) {
+        if (!matches(entry.value)) continue;
+      }
       _clearInFlightPendingMessage(entry.key);
       removed = true;
       break;
@@ -1052,7 +1084,14 @@ class BridgeService implements BridgeServiceBase {
       final before = _messageQueue.length;
       var didRemove = false;
       _messageQueue.removeWhere((pending) {
-        if (didRemove || !matches(pending)) return false;
+        if (didRemove) return false;
+        if (!_shouldClearPendingStartForSessionCreated(
+          pending,
+          provider: provider,
+          projectPath: projectPath,
+        )) {
+          if (!matches(pending)) return false;
+        }
         didRemove = true;
         return true;
       });
@@ -1064,6 +1103,70 @@ class BridgeService implements BridgeServiceBase {
     if (removed) {
       _publishOfflinePendingActions();
     }
+  }
+
+  bool _shouldClearPendingStartForSessionCreated(
+    ClientMessage pending, {
+    required String provider,
+    required String? projectPath,
+  }) {
+    final action = _offlinePendingActionFor(pending);
+    if (action == null ||
+        action.kind != OfflinePendingActionKind.start ||
+        action.provider != provider) {
+      return false;
+    }
+    if (projectPath == null || projectPath.isEmpty) {
+      return true;
+    }
+    if (_compatiblePendingProjectPath(action.projectPath, projectPath)) {
+      return true;
+    }
+    return false;
+  }
+
+  void _clearPendingStartActionsForSessions(List<SessionInfo> sessions) {
+    if (sessions.isEmpty ||
+        (_messageQueue.isEmpty && _inFlightPendingMessages.isEmpty)) {
+      return;
+    }
+
+    bool overlapsActiveSession(OfflinePendingAction action) {
+      if (action.kind != OfflinePendingActionKind.start) return false;
+      final sameProviderSessions = sessions.where((session) {
+        final provider = session.provider ?? Provider.claude.value;
+        return provider == action.provider;
+      }).toList();
+      if (sameProviderSessions.isEmpty) return false;
+      return sameProviderSessions.any(
+        (session) => _compatiblePendingProjectPath(
+          action.projectPath,
+          session.projectPath,
+        ),
+      );
+    }
+
+    var removed = false;
+    for (final entry in List.of(_inFlightPendingMessages.entries)) {
+      final action = _offlinePendingActionFor(entry.value, canCancel: false);
+      if (action == null || !overlapsActiveSession(action)) continue;
+      _clearInFlightPendingMessage(entry.key);
+      removed = true;
+    }
+
+    final before = _messageQueue.length;
+    _messageQueue.removeWhere((message) {
+      final action = _offlinePendingActionFor(message);
+      return action != null && overlapsActiveSession(action);
+    });
+    final removedQueued = before != _messageQueue.length;
+    removed = removed || removedQueued;
+
+    if (!removed) return;
+    if (removedQueued) {
+      unawaited(_persistOfflinePendingMessages());
+    }
+    _publishOfflinePendingActions();
   }
 
   Future<void> _restoreOfflinePendingMessages() async {
