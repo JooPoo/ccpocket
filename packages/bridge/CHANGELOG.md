@@ -2,6 +2,11 @@
 
 All notable changes to `@ccpocket/bridge` will be documented in this file.
 
+## [1.54.1] - 2026-05-05
+
+### Fixed
+- Improve Git branch loading performance for repositories with many branches and worktrees.
+
 ## [1.54.0] - 2026-05-04
 
 ### Added
