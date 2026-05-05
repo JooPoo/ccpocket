@@ -173,6 +173,11 @@ export interface CodexProfileConfig {
   defaultProfile?: string;
 }
 
+interface CodexModelListResponse {
+  data?: unknown[];
+  nextCursor?: unknown;
+}
+
 export function buildCodexSpawnSpec(
   projectPath: string,
   platform: NodeJS.Platform = process.platform,
@@ -462,6 +467,52 @@ export class CodexProcess extends EventEmitter<CodexProcessEvents> {
       nextCursor:
         typeof result.nextCursor === "string" ? result.nextCursor : null,
     };
+  }
+
+  async listAvailableModels(): Promise<string[]> {
+    const models: string[] = [];
+    const seenModels = new Set<string>();
+    const seenCursors = new Set<string>();
+    let cursor: string | null = null;
+
+    do {
+      const result = (await this.request("model/list", {
+        limit: 100,
+        cursor,
+        includeHidden: false,
+      })) as CodexModelListResponse;
+
+      if (Array.isArray(result.data)) {
+        for (const entry of result.data) {
+          if (!entry || typeof entry !== "object") continue;
+          const raw = entry as Record<string, unknown>;
+          if (raw.hidden === true) continue;
+          const model =
+            typeof raw.model === "string" && raw.model.trim().length > 0
+              ? raw.model.trim()
+              : typeof raw.id === "string" && raw.id.trim().length > 0
+                ? raw.id.trim()
+                : undefined;
+          if (!model || seenModels.has(model)) continue;
+          seenModels.add(model);
+          models.push(model);
+        }
+      }
+
+      const nextCursor =
+        typeof result.nextCursor === "string" && result.nextCursor.length > 0
+          ? result.nextCursor
+          : null;
+      if (nextCursor && seenCursors.has(nextCursor)) {
+        break;
+      }
+      if (nextCursor) {
+        seenCursors.add(nextCursor);
+      }
+      cursor = nextCursor;
+    } while (cursor);
+
+    return models;
   }
 
   start(projectPath: string, options?: CodexStartOptions): void {

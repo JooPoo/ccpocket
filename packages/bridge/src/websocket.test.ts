@@ -119,6 +119,7 @@ vi.mock("./session.js", () => ({
           this.collaborationMode = value;
         }),
         listThreads: vi.fn(async () => ({ data: [], nextCursor: null })),
+        listAvailableModels: vi.fn(async () => []),
         readThread: vi.fn(async () => ({ id: "thread-read", turns: [] })),
         rollbackThread: vi.fn(async () => ({ id: "thread-rollback", turns: [] })),
         rollbackThreadById: vi.fn(async () => ({
@@ -424,6 +425,65 @@ describe("BridgeWebSocketServer resume/get_history flow", () => {
     expect(sessionList.codexModels).not.toContain("gpt-5.2-codex");
     expect(sessionList.codexProfiles).toEqual(["ccpocket", "research"]);
     expect(sessionList.defaultCodexProfile).toBe("ccpocket");
+
+    bridge.close();
+  });
+
+  it("updates codex model list from app-server model/list", async () => {
+    const bridge = new BridgeWebSocketServer({ server: httpServer });
+    const ws = {
+      readyState: OPEN_STATE,
+      send: vi.fn(),
+    } as any;
+
+    (bridge as any).loadCodexModels = vi.fn(async () => [
+      "gpt-dynamic-default",
+      "gpt-dynamic-fast",
+    ]);
+
+    await (bridge as any).refreshCodexModels("/tmp/project-models");
+    (bridge as any).sendSessionList(ws);
+
+    const sessionList = ws.send.mock.calls
+      .map((c: unknown[]) => JSON.parse(c[0] as string))
+      .find((msg: any) => msg.type === "session_list");
+
+    expect((bridge as any).loadCodexModels).toHaveBeenCalledWith(
+      "/tmp/project-models",
+    );
+    expect(sessionList.codexModels).toEqual([
+      "gpt-dynamic-default",
+      "gpt-dynamic-fast",
+    ]);
+
+    bridge.close();
+  });
+
+  it("falls back to built-in codex model list when model/list fails", async () => {
+    const bridge = new BridgeWebSocketServer({ server: httpServer });
+    const ws = {
+      readyState: OPEN_STATE,
+      send: vi.fn(),
+    } as any;
+
+    (bridge as any).loadCodexModels = vi.fn(async () => {
+      throw new Error("unsupported method");
+    });
+
+    await (bridge as any).refreshCodexModels("/tmp/project-models");
+    (bridge as any).sendSessionList(ws);
+
+    const sessionList = ws.send.mock.calls
+      .map((c: unknown[]) => JSON.parse(c[0] as string))
+      .find((msg: any) => msg.type === "session_list");
+
+    expect(sessionList.codexModels).toEqual([
+      "gpt-5.5",
+      "gpt-5.4",
+      "gpt-5.4-mini",
+      "gpt-5.3-codex",
+      "gpt-5.3-codex-spark",
+    ]);
 
     bridge.close();
   });

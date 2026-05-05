@@ -108,7 +108,7 @@ const CLAUDE_MODELS: string[] = [
   "claude-haiku-4-6",
 ];
 
-const CODEX_MODELS: string[] = [
+const FALLBACK_CODEX_MODELS: string[] = [
   "gpt-5.5",
   "gpt-5.4",
   "gpt-5.4-mini",
@@ -462,6 +462,8 @@ export class BridgeWebSocketServer {
   private codexProfiles: string[] = [];
   private defaultCodexProfile: string | undefined;
   private codexProfilesRequest: Promise<void> | null = null;
+  private codexModels: string[] = FALLBACK_CODEX_MODELS;
+  private codexModelsRequest: Promise<void> | null = null;
   /** FCM token → push notification locale */
   private tokenLocales = new Map<string, PushLocale>();
   private tokenPrivacyMode = new Map<string, boolean>();
@@ -1304,6 +1306,7 @@ export class BridgeWebSocketServer {
   private handleConnection(ws: WebSocket): void {
     // Send session list and project history on connect
     void this.refreshCodexProfiles();
+    void this.refreshCodexModels();
     this.sendSessionList(ws);
     const projects = this.projectHistory?.getProjects() ?? [];
     this.send(ws, { type: "project_history", projects });
@@ -1578,6 +1581,9 @@ export class BridgeWebSocketServer {
               }),
             );
             this.broadcastSessionList();
+            if (provider === "codex") {
+              void this.refreshCodexModels(projectPath);
+            }
             if (autoFallbackUsed) {
               this.sendTip(
                 ws,
@@ -4951,7 +4957,7 @@ export class BridgeWebSocketServer {
       sessions,
       allowedDirs: this.allowedDirs,
       claudeModels: CLAUDE_MODELS,
-      codexModels: CODEX_MODELS,
+      codexModels: this.codexModels,
       codexProfiles: this.codexProfiles,
       defaultCodexProfile: this.defaultCodexProfile,
       bridgeVersion: getPackageVersion(),
@@ -4984,7 +4990,7 @@ export class BridgeWebSocketServer {
       sessions,
       allowedDirs: this.allowedDirs,
       claudeModels: CLAUDE_MODELS,
-      codexModels: CODEX_MODELS,
+      codexModels: this.codexModels,
       codexProfiles: this.codexProfiles,
       defaultCodexProfile: this.defaultCodexProfile,
       bridgeVersion: getPackageVersion(),
@@ -5066,6 +5072,39 @@ export class BridgeWebSocketServer {
       searchQuery: msg.searchQuery,
       archivedSessionIds: this.archiveStore.archivedIds(),
     });
+  }
+
+  private async refreshCodexModels(projectPath?: string): Promise<void> {
+    if (this.codexModelsRequest) return this.codexModelsRequest;
+    this.codexModelsRequest = this.loadCodexModels(projectPath)
+      .then((models) => {
+        this.codexModels =
+          models.length > 0 ? models : FALLBACK_CODEX_MODELS;
+        this.broadcastSessionList();
+      })
+      .catch((err) => {
+        console.warn(`[ws] Failed to load Codex models: ${err}`);
+        this.codexModels = FALLBACK_CODEX_MODELS;
+        this.broadcastSessionList();
+      })
+      .finally(() => {
+        this.codexModelsRequest = null;
+      });
+    return this.codexModelsRequest;
+  }
+
+  private async loadCodexModels(projectPath?: string): Promise<string[]> {
+    const process =
+      this.getActiveCodexProcess() ??
+      (await this.createStandaloneCodexProcess(projectPath));
+    const isStandalone = process !== this.getActiveCodexProcess();
+    try {
+      return await process.listAvailableModels();
+    } finally {
+      if (isStandalone) {
+        process.stop();
+      }
+    }
   }
 
   private async refreshCodexProfiles(projectPath?: string): Promise<void> {
