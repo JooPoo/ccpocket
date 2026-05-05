@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.91.1] - 2026-05-05
+
+### Changed
+- Require Bridge 1.55.1 for Explorer file listings in non-Git projects.
+- Localize Git unavailable tip copy across supported languages.
+
+### Fixed
+- Update Explorer empty state copy now that non-Git file listings are supported.
+
 ## [1.91.0] - 2026-05-05
 
 ### Added
