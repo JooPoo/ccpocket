@@ -2,6 +2,11 @@
 
 All notable changes to `@ccpocket/bridge` will be documented in this file.
 
+## [1.57.0] - 2026-05-09
+
+### Added
+- Include directories in file mention candidates so clients can mention project folders.
+
 ## [1.56.2] - 2026-05-08
 
 ### Changed
