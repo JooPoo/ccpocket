@@ -15,8 +15,16 @@ class MachineEditSheet extends StatefulWidget {
   /// Existing SSH password (for edit mode)
   final String? existingSshPassword;
 
+  /// Existing SSH private key (for edit mode). Used for testing/saving only;
+  /// never prefilled into the text field.
+  final String? existingSshPrivateKey;
+
   /// Existing SSH jump host password (for edit mode)
   final String? existingSshJumpPassword;
+
+  /// Existing SSH jump host private key (for edit mode). Used for
+  /// testing/saving only; never prefilled into the text field.
+  final String? existingSshJumpPrivateKey;
 
   /// Callback when save is pressed
   final Future<void> Function({
@@ -55,7 +63,9 @@ class MachineEditSheet extends StatefulWidget {
     this.machine,
     this.existingApiKey,
     this.existingSshPassword,
+    this.existingSshPrivateKey,
     this.existingSshJumpPassword,
+    this.existingSshJumpPrivateKey,
     required this.onSave,
     this.onSaveAndConnect,
     required this.onTestConnection,
@@ -90,6 +100,19 @@ class _MachineEditSheetState extends State<MachineEditSheet> {
   bool _testSuccess = false;
 
   bool get isEditing => widget.machine != null;
+
+  bool get _hasExistingSshPrivateKey =>
+      widget.existingSshPrivateKey?.isNotEmpty ?? false;
+
+  bool get _hasExistingSshJumpPrivateKey =>
+      widget.existingSshJumpPrivateKey?.isNotEmpty ?? false;
+
+  bool get _hasSshPrivateKey =>
+      _sshPrivateKeyController.text.isNotEmpty || _hasExistingSshPrivateKey;
+
+  bool get _hasSshJumpPrivateKey =>
+      _sshJumpPrivateKeyController.text.isNotEmpty ||
+      _hasExistingSshJumpPrivateKey;
 
   @override
   void initState() {
@@ -161,7 +184,7 @@ class _MachineEditSheetState extends State<MachineEditSheet> {
     if (_sshAuthType == SshAuthType.password) {
       return _sshPasswordController.text.isNotEmpty;
     } else {
-      return _sshPrivateKeyController.text.isNotEmpty;
+      return _hasSshPrivateKey;
     }
   }
 
@@ -200,15 +223,18 @@ class _MachineEditSheetState extends State<MachineEditSheet> {
             ? _sshJumpPasswordController.text
             : null,
         jumpPrivateKey:
-            _sshJumpAuthType == SshAuthType.privateKey &&
-                _sshJumpPrivateKeyController.text.isNotEmpty
-            ? _sshJumpPrivateKeyController.text
+            _sshJumpAuthType == SshAuthType.privateKey && _hasSshJumpPrivateKey
+            ? _sshJumpPrivateKeyController.text.isNotEmpty
+                  ? _sshJumpPrivateKeyController.text
+                  : widget.existingSshJumpPrivateKey
             : null,
         password: _sshAuthType == SshAuthType.password
             ? _sshPasswordController.text
             : null,
-        privateKey: _sshAuthType == SshAuthType.privateKey
-            ? _sshPrivateKeyController.text
+        privateKey: _sshAuthType == SshAuthType.privateKey && _hasSshPrivateKey
+            ? _sshPrivateKeyController.text.isNotEmpty
+                  ? _sshPrivateKeyController.text
+                  : widget.existingSshPrivateKey
             : null,
       );
 
@@ -271,7 +297,10 @@ class _MachineEditSheetState extends State<MachineEditSheet> {
         sshPassword: _sshEnabled && _sshAuthType == SshAuthType.password
             ? _sshPasswordController.text
             : null,
-        sshPrivateKey: _sshEnabled && _sshAuthType == SshAuthType.privateKey
+        sshPrivateKey:
+            _sshEnabled &&
+                _sshAuthType == SshAuthType.privateKey &&
+                _sshPrivateKeyController.text.isNotEmpty
             ? _sshPrivateKeyController.text
             : null,
         sshJumpPassword:
@@ -552,15 +581,30 @@ class _MachineEditSheetState extends State<MachineEditSheet> {
                           obscureText: true,
                         )
                       else
-                        TextField(
-                          controller: _sshPrivateKeyController,
-                          decoration: const InputDecoration(
-                            labelText: 'SSH Private Key (PEM)',
-                            hintText: '-----BEGIN OPENSSH PRIVATE KEY-----',
-                            prefixIcon: Icon(Icons.vpn_key),
-                            border: OutlineInputBorder(),
-                          ),
-                          maxLines: 4,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            TextField(
+                              key: const ValueKey('ssh_private_key_field'),
+                              controller: _sshPrivateKeyController,
+                              decoration: const InputDecoration(
+                                labelText: 'SSH Private Key (PEM)',
+                                hintText: '-----BEGIN OPENSSH PRIVATE KEY-----',
+                                prefixIcon: Icon(Icons.vpn_key),
+                                border: OutlineInputBorder(),
+                              ),
+                              maxLines: 4,
+                              onChanged: (_) => setState(() {}),
+                            ),
+                            if (_hasExistingSshPrivateKey &&
+                                _sshPrivateKeyController.text.isEmpty) ...[
+                              const SizedBox(height: 8),
+                              _SavedCredentialIndicator(
+                                label:
+                                    'A saved private key will be used unless replaced.',
+                              ),
+                            ],
+                          ],
                         ),
 
                       const SizedBox(height: 16),
@@ -686,16 +730,35 @@ class _MachineEditSheetState extends State<MachineEditSheet> {
                             obscureText: true,
                           )
                         else
-                          TextField(
-                            key: const ValueKey('ssh_jump_private_key_field'),
-                            controller: _sshJumpPrivateKeyController,
-                            decoration: const InputDecoration(
-                              labelText: 'Jump Private Key (PEM)',
-                              hintText: '-----BEGIN OPENSSH PRIVATE KEY-----',
-                              prefixIcon: Icon(Icons.vpn_key),
-                              border: OutlineInputBorder(),
-                            ),
-                            maxLines: 4,
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              TextField(
+                                key: const ValueKey(
+                                  'ssh_jump_private_key_field',
+                                ),
+                                controller: _sshJumpPrivateKeyController,
+                                decoration: const InputDecoration(
+                                  labelText: 'Jump Private Key (PEM)',
+                                  hintText:
+                                      '-----BEGIN OPENSSH PRIVATE KEY-----',
+                                  prefixIcon: Icon(Icons.vpn_key),
+                                  border: OutlineInputBorder(),
+                                ),
+                                maxLines: 4,
+                                onChanged: (_) => setState(() {}),
+                              ),
+                              if (_hasExistingSshJumpPrivateKey &&
+                                  _sshJumpPrivateKeyController
+                                      .text
+                                      .isEmpty) ...[
+                                const SizedBox(height: 8),
+                                _SavedCredentialIndicator(
+                                  label:
+                                      'A saved jump host private key will be used unless replaced.',
+                                ),
+                              ],
+                            ],
                           ),
                       ],
 
@@ -822,6 +885,33 @@ class _MachineEditSheetState extends State<MachineEditSheet> {
           ),
         );
       },
+    );
+  }
+}
+
+class _SavedCredentialIndicator extends StatelessWidget {
+  final String label;
+
+  const _SavedCredentialIndicator({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
+    return Row(
+      key: const ValueKey('saved_ssh_private_key_indicator'),
+      children: [
+        Icon(Icons.check_circle, size: 16, color: colorScheme.primary),
+        const SizedBox(width: 6),
+        Expanded(
+          child: Text(
+            label,
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

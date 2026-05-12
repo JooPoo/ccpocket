@@ -9,21 +9,29 @@ class _TestConnectionCall {
   final String host;
   final int sshPort;
   final String username;
+  final SshAuthType authType;
+  final String? password;
+  final String? privateKey;
   final String? jumpHost;
   final int jumpPort;
   final String? jumpUsername;
   final SshAuthType? jumpAuthType;
   final String? jumpPassword;
+  final String? jumpPrivateKey;
 
   const _TestConnectionCall({
     required this.host,
     required this.sshPort,
     required this.username,
+    required this.authType,
+    required this.password,
+    required this.privateKey,
     required this.jumpHost,
     required this.jumpPort,
     required this.jumpUsername,
     required this.jumpAuthType,
     this.jumpPassword,
+    this.jumpPrivateKey,
   });
 }
 
@@ -33,7 +41,9 @@ void main() {
     Machine? machine,
     void Function(_TestConnectionCall call)? onTestConnectionCall,
     String? existingSshPassword,
+    String? existingSshPrivateKey,
     String? existingSshJumpPassword,
+    String? existingSshJumpPrivateKey,
     required Future<void> Function({
       required Machine machine,
       String? apiKey,
@@ -58,7 +68,9 @@ void main() {
           body: MachineEditSheet(
             machine: machine,
             existingSshPassword: existingSshPassword,
+            existingSshPrivateKey: existingSshPrivateKey,
             existingSshJumpPassword: existingSshJumpPassword,
+            existingSshJumpPrivateKey: existingSshJumpPrivateKey,
             onSave: onSave,
             onTestConnection:
                 ({
@@ -80,11 +92,15 @@ void main() {
                       host: host,
                       sshPort: sshPort,
                       username: username,
+                      authType: authType,
+                      password: password,
+                      privateKey: privateKey,
                       jumpHost: jumpHost,
                       jumpPort: jumpPort,
                       jumpUsername: jumpUsername,
                       jumpAuthType: jumpAuthType,
                       jumpPassword: jumpPassword,
+                      jumpPrivateKey: jumpPrivateKey,
                     ),
                   );
                   return SshResult.success();
@@ -281,6 +297,102 @@ void main() {
       expect(call!.jumpUsername, 'jump-user');
       expect(call!.jumpAuthType, SshAuthType.password);
       expect(call!.jumpPassword, 'jump-pw');
+    });
+
+    testWidgets('uses saved private key without displaying it', (tester) async {
+      _TestConnectionCall? call;
+      Machine? savedMachine;
+      String? savedSshPrivateKey;
+
+      await pumpSheet(
+        tester,
+        machine: const Machine(
+          id: 'm6',
+          host: 'target.internal',
+          sshEnabled: true,
+          sshUsername: 'target-user',
+          sshAuthType: SshAuthType.privateKey,
+        ),
+        existingSshPrivateKey: 'saved-private-key',
+        onTestConnectionCall: (value) => call = value,
+        onSave:
+            ({
+              required machine,
+              apiKey,
+              sshPassword,
+              sshPrivateKey,
+              sshJumpPassword,
+              sshJumpPrivateKey,
+            }) async {
+              savedMachine = machine;
+              savedSshPrivateKey = sshPrivateKey;
+            },
+      );
+
+      expect(find.text('saved-private-key'), findsNothing);
+      expect(
+        find.text('A saved private key will be used unless replaced.'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.text('Test Connection'));
+      await tester.pumpAndSettle();
+
+      expect(call, isNotNull);
+      expect(call!.authType, SshAuthType.privateKey);
+      expect(call!.privateKey, 'saved-private-key');
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(savedMachine, isNotNull);
+      expect(savedMachine!.sshAuthType, SshAuthType.privateKey);
+      expect(savedSshPrivateKey, isNull);
+    });
+
+    testWidgets('replaces saved private key only when a new key is entered', (
+      tester,
+    ) async {
+      String? savedSshPrivateKey;
+
+      await pumpSheet(
+        tester,
+        machine: const Machine(
+          id: 'm7',
+          host: 'target.internal',
+          sshEnabled: true,
+          sshUsername: 'target-user',
+          sshAuthType: SshAuthType.privateKey,
+        ),
+        existingSshPrivateKey: 'saved-private-key',
+        onSave:
+            ({
+              required machine,
+              apiKey,
+              sshPassword,
+              sshPrivateKey,
+              sshJumpPassword,
+              sshJumpPrivateKey,
+            }) async {
+              savedSshPrivateKey = sshPrivateKey;
+            },
+      );
+
+      await tester.enterText(
+        find.byKey(const ValueKey('ssh_private_key_field')),
+        'replacement-private-key',
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('A saved private key will be used unless replaced.'),
+        findsNothing,
+      );
+
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(savedSshPrivateKey, 'replacement-private-key');
     });
   });
 }

@@ -471,19 +471,18 @@ class MachineManagerService {
       await _secureStorage.delete(
         key: '$_secureKeyPrefix${machine.id}_ssh_key',
       );
-    } else {
-      if (sshPassword != null && sshPassword.isNotEmpty) {
-        await _secureStorage.write(
-          key: '$_secureKeyPrefix${machine.id}_ssh_pass',
-          value: sshPassword,
-        );
-      }
-      if (sshPrivateKey != null && sshPrivateKey.isNotEmpty) {
-        await _secureStorage.write(
-          key: '$_secureKeyPrefix${machine.id}_ssh_key',
-          value: sshPrivateKey,
-        );
-      }
+    }
+    if (sshPassword != null && sshPassword.isNotEmpty) {
+      await _secureStorage.write(
+        key: '$_secureKeyPrefix${machine.id}_ssh_pass',
+        value: sshPassword,
+      );
+    }
+    if (sshPrivateKey != null && sshPrivateKey.isNotEmpty) {
+      await _secureStorage.write(
+        key: '$_secureKeyPrefix${machine.id}_ssh_key',
+        value: sshPrivateKey,
+      );
     }
 
     if (clearJumpCredentials) {
@@ -493,19 +492,18 @@ class MachineManagerService {
       await _secureStorage.delete(
         key: '$_secureKeyPrefix${machine.id}_jump_ssh_key',
       );
-    } else {
-      if (sshJumpPassword != null && sshJumpPassword.isNotEmpty) {
-        await _secureStorage.write(
-          key: '$_secureKeyPrefix${machine.id}_jump_ssh_pass',
-          value: sshJumpPassword,
-        );
-      }
-      if (sshJumpPrivateKey != null && sshJumpPrivateKey.isNotEmpty) {
-        await _secureStorage.write(
-          key: '$_secureKeyPrefix${machine.id}_jump_ssh_key',
-          value: sshJumpPrivateKey,
-        );
-      }
+    }
+    if (sshJumpPassword != null && sshJumpPassword.isNotEmpty) {
+      await _secureStorage.write(
+        key: '$_secureKeyPrefix${machine.id}_jump_ssh_pass',
+        value: sshJumpPassword,
+      );
+    }
+    if (sshJumpPrivateKey != null && sshJumpPrivateKey.isNotEmpty) {
+      await _secureStorage.write(
+        key: '$_secureKeyPrefix${machine.id}_jump_ssh_key',
+        value: sshJumpPrivateKey,
+      );
     }
 
     // Update flags

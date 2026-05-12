@@ -2317,7 +2317,9 @@ class _SessionListScreenState extends State<SessionListScreen>
     final cubit = context.read<MachineManagerCubit>();
     final apiKey = await cubit.getApiKey(m.machine.id);
     final sshPassword = await cubit.getSshPassword(m.machine.id);
+    final sshPrivateKey = await cubit.getSshPrivateKey(m.machine.id);
     final sshJumpPassword = await cubit.getSshJumpPassword(m.machine.id);
+    final sshJumpPrivateKey = await cubit.getSshJumpPrivateKey(m.machine.id);
 
     if (!mounted) return;
 
@@ -2330,7 +2332,9 @@ class _SessionListScreenState extends State<SessionListScreen>
         machine: m.machine,
         existingApiKey: apiKey,
         existingSshPassword: sshPassword,
+        existingSshPrivateKey: sshPrivateKey,
         existingSshJumpPassword: sshJumpPassword,
+        existingSshJumpPrivateKey: sshJumpPrivateKey,
         onSave:
             ({
               required machine,
@@ -2347,7 +2351,12 @@ class _SessionListScreenState extends State<SessionListScreen>
                 sshPrivateKey: sshPrivateKey,
                 sshJumpPassword: sshJumpPassword,
                 sshJumpPrivateKey: sshJumpPrivateKey,
-                clearJumpCredentials: machine.sshJumpHost == null,
+                clearCredentials:
+                    !machine.sshEnabled ||
+                    machine.sshAuthType != m.machine.sshAuthType,
+                clearJumpCredentials:
+                    machine.sshJumpHost == null ||
+                    machine.sshJumpAuthType != m.machine.sshJumpAuthType,
               );
             },
         onTestConnection: cubit.testConnectionWithCredentials,

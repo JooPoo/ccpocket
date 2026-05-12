@@ -559,9 +559,17 @@ class MachineManagerCubit extends Cubit<MachineManagerState> {
   Future<String?> getSshPassword(String machineId) =>
       _service.getSshPassword(machineId);
 
+  /// Get SSH private key for a machine
+  Future<String?> getSshPrivateKey(String machineId) =>
+      _service.getSshPrivateKey(machineId);
+
   /// Get SSH jump host password for a machine
   Future<String?> getSshJumpPassword(String machineId) =>
       _service.getSshJumpPassword(machineId);
+
+  /// Get SSH jump host private key for a machine
+  Future<String?> getSshJumpPrivateKey(String machineId) =>
+      _service.getSshJumpPrivateKey(machineId);
 
   /// Build WebSocket URL with API key
   Future<String> buildWsUrl(
