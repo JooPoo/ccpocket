@@ -371,6 +371,13 @@ class _MachineEditSheetState extends State<MachineEditSheet> {
                     ),
                     const Spacer(),
                     IconButton(
+                      key: const ValueKey('dismiss_keyboard_button'),
+                      tooltip: 'Dismiss keyboard',
+                      onPressed: () =>
+                          FocusManager.instance.primaryFocus?.unfocus(),
+                      icon: const Icon(Icons.keyboard_hide),
+                    ),
+                    IconButton(
                       onPressed: () => Navigator.of(context).pop(),
                       icon: const Icon(Icons.close),
                     ),
@@ -384,6 +391,8 @@ class _MachineEditSheetState extends State<MachineEditSheet> {
               Expanded(
                 child: ListView(
                   controller: scrollController,
+                  keyboardDismissBehavior:
+                      ScrollViewKeyboardDismissBehavior.onDrag,
                   padding: const EdgeInsets.all(16),
                   children: [
                     // Basic Info

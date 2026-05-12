@@ -113,6 +113,34 @@ void main() {
   }
 
   group('MachineEditSheet secure connection', () {
+    testWidgets('header keyboard button dismisses focused text field', (
+      tester,
+    ) async {
+      await pumpSheet(
+        tester,
+        machine: const Machine(id: 'm8', host: 'bridge.example.com'),
+        onSave:
+            ({
+              required machine,
+              apiKey,
+              sshPassword,
+              sshPrivateKey,
+              sshJumpPassword,
+              sshJumpPrivateKey,
+            }) async {},
+      );
+
+      await tester.tap(find.widgetWithText(TextField, 'Name'));
+      await tester.pumpAndSettle();
+
+      expect(tester.testTextInput.isVisible, isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('dismiss_keyboard_button')));
+      await tester.pumpAndSettle();
+
+      expect(tester.testTextInput.isVisible, isFalse);
+    });
+
     testWidgets('loads existing SSL setting into the toggle', (tester) async {
       await pumpSheet(
         tester,
