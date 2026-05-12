@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.96.1] - 2026-05-12
+
+### Fixed
+- Preserve saved SSH private keys when editing machines.
+- Preserve jump host password and private key credentials when editing machines.
+- Show saved private key status in the machine editor and localize related copy.
+- Avoid keyboard overlap in bottom sheets with text fields.
+
 ## [1.96.0] - 2026-05-09
 
 ### Added
