@@ -344,6 +344,17 @@ void main() {
 
       expect(
         find.byKey(const ValueKey('appbar_copy_codex_join_button')),
+        findsNothing,
+      );
+
+      bridge.emitMessage(
+        const UserInputMessage(text: 'hello'),
+        sessionId: 'codex-session',
+      );
+      await tester.pump();
+
+      expect(
+        find.byKey(const ValueKey('appbar_copy_codex_join_button')),
         findsOneWidget,
       );
 

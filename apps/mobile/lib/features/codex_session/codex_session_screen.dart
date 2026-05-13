@@ -614,6 +614,9 @@ class _CodexChatBody extends HookWidget {
     );
     final parentState = context
         .findAncestorStateOfType<_CodexSessionScreenState>();
+    final canCopyCodexCliJoinCommand =
+        codexCliJoinCommand.value != null &&
+        _hasSentUserMessage(sessionState.entries);
     void handleExploreResult(ExploreScreenResult result) {
       if (!context.mounted) return;
       parentState?.updateExplorerState(
@@ -1031,7 +1034,7 @@ class _CodexChatBody extends HookWidget {
                             );
                           },
                         ),
-                      if (codexCliJoinCommand.value != null)
+                      if (canCopyCodexCliJoinCommand)
                         IconButton(
                           key: const ValueKey('appbar_copy_codex_join_button'),
                           icon: Icon(
@@ -1904,6 +1907,12 @@ String? _latestCodexCliJoinCommand(List<ServerMessage> messages) {
     }
   }
   return null;
+}
+
+bool _hasSentUserMessage(List<ChatEntry> entries) {
+  return entries.any(
+    (entry) => entry is UserChatEntry && entry.status == MessageStatus.sent,
+  );
 }
 
 Future<void> _copyCodexCliJoinCommand(
