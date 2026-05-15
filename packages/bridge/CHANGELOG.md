@@ -2,6 +2,11 @@
 
 All notable changes to `@ccpocket/bridge` will be documented in this file.
 
+## [1.59.1] - 2026-05-15
+
+### Fixed
+- Speed up Codex recent session loading by limiting JSONL metadata reads to the visible app-server thread page.
+
 ## [1.59.0] - 2026-05-15
 
 ### Added
