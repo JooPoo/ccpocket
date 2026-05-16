@@ -2,6 +2,11 @@
 
 All notable changes to `@ccpocket/bridge` will be documented in this file.
 
+## [1.59.3] - 2026-05-17
+
+### Fixed
+- Show a clear setup error when the Codex CLI is unavailable.
+
 ## [1.59.2] - 2026-05-16
 
 ### Fixed
