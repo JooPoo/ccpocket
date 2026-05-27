@@ -4,6 +4,14 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.100.0] - 2026-05-27
+
+### Added
+- Group recent sessions by project with per-project collapse state and incremental history loading.
+
+### Changed
+- Require Bridge 1.62.0 for project-scoped recent session pagination.
+
 ## [1.99.4] - 2026-05-26
 
 ### Fixed
