@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/), and this project adheres to [Semantic Versioning](https://semver.org/).
 
+## [1.101.2] - 2026-06-06
+
+### Changed
+- Require Bridge 1.63.4 for the latest persistent service compatibility fixes.
+- Add an Agents setting to show Codex only, Claude only, or both providers in new sessions and session filters.
+- Add a list display mode for Recent Sessions alongside project grouping.
+
+### Fixed
+- Keep Settings working on Flutter Web by avoiding direct `dart:io` platform access.
+- Avoid showing the Claude login card for non-Claude authentication errors.
+- Preserve factual Codex recent-session settings instead of overlaying saved defaults.
+
 ## [1.101.1] - 2026-05-29
 
 ### Fixed
