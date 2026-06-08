@@ -50,9 +50,6 @@ jobs:
           bundler-cache: true
           working-directory: apps/mobile
 
-      - name: Install fastlane
-        run: gem install fastlane
-
       - name: Upload iOS metadata
         env:
           APP_STORE_CONNECT_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
@@ -60,7 +57,7 @@ jobs:
           APP_STORE_CONNECT_PRIVATE_KEY: ${{ secrets.APP_STORE_CONNECT_PRIVATE_KEY }}
           SKIP_SCREENSHOTS: ${{ inputs.upload_screenshots == false }}
           SPACESHIP_SCREENSHOT_UPLOAD_TIMEOUT: "5"
-        run: fastlane ios metadata
+        run: bundle exec fastlane ios metadata
 
   android:
     if: ${{ inputs.platform == 'android' || inputs.platform == 'both' }}
@@ -78,9 +75,6 @@ jobs:
           ruby-version: '3.2'
           bundler-cache: true
           working-directory: apps/mobile
-
-      - name: Install fastlane
-        run: gem install fastlane
 
       - name: Read Android version code
         id: android_version
@@ -121,4 +115,4 @@ jobs:
           SKIP_UPLOAD_SCREENSHOTS: ${{ inputs.upload_screenshots == false }}
           SKIP_UPLOAD_IMAGES: ${{ inputs.upload_images == false }}
           ANDROID_VERSION_CODE: ${{ inputs.android_version_code || steps.android_version.outputs.code }}
-        run: fastlane android metadata
+        run: bundle exec fastlane android metadata
