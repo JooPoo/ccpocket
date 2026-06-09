@@ -105,6 +105,12 @@ jobs:
           "archive_path=$archiveName" >> $env:GITHUB_OUTPUT
           "archive_name=$archiveName" >> $env:GITHUB_OUTPUT
 
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: CC-Pocket-windows-x64
+          path: ${{ steps.package.outputs.archive_path }}
+
       - name: Extract changelog section
         if: startsWith(github.ref, 'refs/tags/')
         id: changelog
