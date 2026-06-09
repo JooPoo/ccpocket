@@ -261,6 +261,16 @@ class AppTheme {
     );
   }
 
+  // CJK fallback chain. IBM Plex Sans / Space Grotesk are Latin-only, so CJK
+  // glyphs fall back per-character to whatever the platform picks. On Windows
+  // that chain is inconsistent and renders Chinese with mismatched weights.
+  // Naming the platform CJK fonts here makes the fallback deterministic.
+  static const List<String> _cjkFallback = [
+    'Microsoft YaHei', // Windows
+    'PingFang SC', // macOS / iOS
+    'Noto Sans CJK SC', // Linux / Android
+  ];
+
   static TextTheme _buildTextTheme(ColorScheme colorScheme) {
     final baseTextTheme = GoogleFonts.ibmPlexSansTextTheme();
 
@@ -353,7 +363,7 @@ class AppTheme {
         letterSpacing: 0.4,
         color: colorScheme.onSurfaceVariant,
       ),
-    );
+    ).apply(fontFamilyFallback: _cjkFallback);
   }
 }
 
