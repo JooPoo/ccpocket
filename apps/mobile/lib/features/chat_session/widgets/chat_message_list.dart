@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart' show ScrollDirection;
-import 'package:flutter/scheduler.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:scroll_to_index/scroll_to_index.dart';
 
@@ -13,16 +12,7 @@ import '../../message_images/message_images_screen.dart';
 import '../state/chat_session_cubit.dart';
 import '../state/streaming_state.dart';
 import '../state/streaming_state_cubit.dart';
-
-/// Offset (in logical pixels) above the bottom past which the user is
-/// considered to be "reading older content". Mirrors the threshold in
-/// `useScrollTracking` so scroll-position compensation and the
-/// scroll-to-bottom FAB agree on what "scrolled up" means.
-const double _kScrolledUpThreshold = 100;
-
-/// Minimum change in maxScrollExtent (logical pixels) to treat as a real
-/// layout shift rather than floating-point rounding noise.
-const double _kExtentChangeTolerance = 1.0;
+import 'maintain_reading_position_physics.dart';
 
 @visibleForTesting
 bool shouldShowForkForAssistant(List<ChatEntry> entries, int entryIndex) {
@@ -90,13 +80,6 @@ class ChatMessageList extends StatefulWidget {
 }
 
 class _ChatMessageListState extends State<ChatMessageList> {
-  /// Last observed maxScrollExtent, used to detect bottom growth/shrink for
-  /// read-position compensation. Null until the first metrics notification.
-  double? _prevMaxScrollExtent;
-
-  /// Guards against re-entrant compensation while a jumpTo is in flight.
-  bool _compensating = false;
-
   @override
   void initState() {
     super.initState();
@@ -109,12 +92,6 @@ class _ChatMessageListState extends State<ChatMessageList> {
     if (oldWidget.scrollToUserEntry != widget.scrollToUserEntry) {
       oldWidget.scrollToUserEntry?.removeListener(_onScrollToUserEntry);
       widget.scrollToUserEntry?.addListener(_onScrollToUserEntry);
-    }
-    // Switching sessions reuses this State with a different list; drop the
-    // stale extent so the next notification re-establishes a baseline instead
-    // of compensating against the previous session's height.
-    if (oldWidget.sessionId != widget.sessionId) {
-      _prevMaxScrollExtent = null;
     }
   }
 
@@ -188,66 +165,6 @@ class _ChatMessageListState extends State<ChatMessageList> {
   }
 
   // ---------------------------------------------------------------------------
-  // Read-position compensation
-  // ---------------------------------------------------------------------------
-
-  /// Keeps the content the user is reading visually fixed while new output
-  /// streams in at the bottom.
-  ///
-  /// The list is `reverse: true`, so it is anchored to the bottom. When the
-  /// bottom region (streaming bubble + freshly appended entries) grows while
-  /// the user has scrolled up, everything above it is pushed within the
-  /// viewport and the read position jumps. We counter that by shifting the
-  /// scroll offset by the same delta.
-  ///
-  /// [ScrollMetricsNotification] (unlike scroll-position listeners) fires on
-  /// pure content-dimension changes, which is exactly the streaming case.
-  ///
-  /// Gated on `isStreaming` so this never fights history prepend, which grows
-  /// the *top* (far end) of a reverse list and must not move the viewport.
-  bool _onScrollMetrics(ScrollMetricsNotification notification) {
-    final metrics = notification.metrics;
-    final prev = _prevMaxScrollExtent;
-    _prevMaxScrollExtent = metrics.maxScrollExtent;
-
-    if (prev == null || _compensating) return false;
-
-    final delta = metrics.maxScrollExtent - prev;
-    if (delta.abs() <= _kExtentChangeTolerance) return false;
-
-    // Near the bottom we want the list to keep following new output.
-    if (metrics.pixels <= _kScrolledUpThreshold) return false;
-
-    if (!context.read<StreamingStateCubit>().state.isStreaming) return false;
-
-    final controller = widget.scrollController;
-    if (!controller.hasClients) return false;
-
-    final double target = (metrics.pixels + delta)
-        .clamp(metrics.minScrollExtent, metrics.maxScrollExtent)
-        .toDouble();
-    final sessionId = widget.sessionId;
-
-    _compensating = true;
-    void apply() {
-      if (!mounted || widget.sessionId != sessionId) {
-        _compensating = false;
-        return;
-      }
-      if (controller.hasClients) controller.jumpTo(target);
-      _compensating = false;
-    }
-
-    // jumpTo during the layout/build phase would assert; defer if needed.
-    if (SchedulerBinding.instance.schedulerPhase == SchedulerPhase.idle) {
-      apply();
-    } else {
-      SchedulerBinding.instance.addPostFrameCallback((_) => apply());
-    }
-    return false;
-  }
-
-  // ---------------------------------------------------------------------------
   // Build
   // ---------------------------------------------------------------------------
 
@@ -266,116 +183,122 @@ class _ChatMessageListState extends State<ChatMessageList> {
     );
     final totalCount = allEntries.length + (hasStreaming ? 1 : 0);
 
-    return NotificationListener<ScrollMetricsNotification>(
-      onNotification: _onScrollMetrics,
-      child: NotificationListener<ScrollNotification>(
-        onNotification: (notification) {
-          // Only unfocus when user drags the list (not programmatic scroll).
-          // This prevents the keyboard from being dismissed during automatic
-          // scroll-to-bottom triggered by streaming updates.
-          if (notification is UserScrollNotification &&
-              notification.direction != ScrollDirection.idle) {
-            FocusScope.of(context).unfocus();
-          }
-          return false;
-        },
-        child: ListView.builder(
-          controller: widget.scrollController,
-          reverse: true,
-          padding: EdgeInsets.only(top: 36, bottom: widget.bottomPadding),
-          itemCount: totalCount,
-          itemBuilder: (context, index) {
-            // index 0 = newest entry (bottom of chat)
-            // Map to actual entry index:
-            final entryIndex = totalCount - 1 - index;
+    // Read (not watch) the streaming cubit: the physics queries it lazily
+    // during layout, so we only need a stable reference, not a rebuild.
+    final streamingCubit = context.read<StreamingStateCubit>();
 
-            // Streaming entry is at totalCount - 1 (index 0 in reverse)
-            if (hasStreaming && entryIndex == allEntries.length) {
-              // Scoped BlocBuilder: only this widget rebuilds on streaming deltas
-              return BlocBuilder<StreamingStateCubit, StreamingState>(
-                builder: (context, streamingState) {
-                  if (!streamingState.isStreaming) {
-                    return const SizedBox.shrink();
-                  }
-                  return ChatEntryWidget(
-                    entry: StreamingChatEntry(text: streamingState.text),
-                    previous: null,
-                    httpBaseUrl: widget.httpBaseUrl,
-                    onRetryMessage: null,
-                    collapseToolResults: null,
-                    hiddenToolUseIds: const {},
-                    isCodex: widget.isCodex,
-                  );
-                },
-              );
-            }
-
-            final entry = allEntries[entryIndex];
-            final previous = entryIndex > 0 ? allEntries[entryIndex - 1] : null;
-            final onForkMessage =
-                widget.isCodex &&
-                    shouldShowForkForAssistant(allEntries, entryIndex)
-                ? widget.onForkMessage
-                : null;
-
-            Widget child = ChatEntryWidget(
-              entry: entry,
-              previous: previous,
-              httpBaseUrl: widget.httpBaseUrl,
-              onRetryMessage: widget.onRetryMessage,
-              onRewindMessage: widget.onRewindMessage,
-              onForkMessage: onForkMessage,
-              collapseToolResults: widget.collapseToolResults,
-              resolvedPlanText: _resolvePlanText(entry),
-              hiddenToolUseIds: hiddenToolUseIds,
-              onFileTap: (filePath) {
-                final projectPath = widget.projectPath;
-                if (projectPath == null || projectPath.isEmpty) return;
-                openFilePeek(
-                  context,
-                  bridge: context.read<BridgeService>(),
-                  projectPath: projectPath,
-                  filePath: filePath,
-                  projectFiles: context.read<FileListCubit>().state,
-                  onResolvedFilePath: widget.onFilePeekOpened,
-                );
-              },
-              onImageTap: (user) {
-                final claudeSessionId = context
-                    .read<ChatSessionCubit>()
-                    .state
-                    .claudeSessionId;
-                final httpBaseUrl = widget.httpBaseUrl;
-                if (claudeSessionId == null ||
-                    claudeSessionId.isEmpty ||
-                    httpBaseUrl == null) {
-                  return;
-                }
-                Navigator.of(context).push(
-                  MaterialPageRoute<void>(
-                    builder: (_) => MessageImagesScreen(
-                      bridge: context.read<BridgeService>(),
-                      httpBaseUrl: httpBaseUrl,
-                      claudeSessionId: claudeSessionId,
-                      messageUuid: user.messageUuid!,
-                      imageCount: user.imageCount,
-                    ),
-                  ),
-                );
-              },
-              isCodex: widget.isCodex,
-            );
-            // Wrap with AutoScrollTag for scroll-to-index support.
-            // Use entryIndex (not reverse index) as the AutoScrollTag index.
-            child = AutoScrollTag(
-              key: ValueKey(_entryKey(entry, entryIndex)),
-              controller: widget.scrollController,
-              index: entryIndex,
-              child: child,
-            );
-            return child;
-          },
+    return NotificationListener<ScrollNotification>(
+      onNotification: (notification) {
+        // Only unfocus when user drags the list (not programmatic scroll).
+        // This prevents the keyboard from being dismissed during automatic
+        // scroll-to-bottom triggered by streaming updates.
+        if (notification is UserScrollNotification &&
+            notification.direction != ScrollDirection.idle) {
+          FocusScope.of(context).unfocus();
+        }
+        return false;
+      },
+      child: ListView.builder(
+        controller: widget.scrollController,
+        reverse: true,
+        // Pins the read position during streaming so growth at the bottom does
+        // not push the content the user is reading. See the physics class.
+        physics: MaintainReadingPositionPhysics(
+          shouldMaintain: () => streamingCubit.state.isStreaming,
         ),
+        padding: EdgeInsets.only(top: 36, bottom: widget.bottomPadding),
+        itemCount: totalCount,
+        itemBuilder: (context, index) {
+          // index 0 = newest entry (bottom of chat)
+          // Map to actual entry index:
+          final entryIndex = totalCount - 1 - index;
+
+          // Streaming entry is at totalCount - 1 (index 0 in reverse)
+          if (hasStreaming && entryIndex == allEntries.length) {
+            // Scoped BlocBuilder: only this widget rebuilds on streaming deltas
+            return BlocBuilder<StreamingStateCubit, StreamingState>(
+              builder: (context, streamingState) {
+                if (!streamingState.isStreaming) {
+                  return const SizedBox.shrink();
+                }
+                return ChatEntryWidget(
+                  entry: StreamingChatEntry(text: streamingState.text),
+                  previous: null,
+                  httpBaseUrl: widget.httpBaseUrl,
+                  onRetryMessage: null,
+                  collapseToolResults: null,
+                  hiddenToolUseIds: const {},
+                  isCodex: widget.isCodex,
+                );
+              },
+            );
+          }
+
+          final entry = allEntries[entryIndex];
+          final previous = entryIndex > 0 ? allEntries[entryIndex - 1] : null;
+          final onForkMessage =
+              widget.isCodex &&
+                  shouldShowForkForAssistant(allEntries, entryIndex)
+              ? widget.onForkMessage
+              : null;
+
+          Widget child = ChatEntryWidget(
+            entry: entry,
+            previous: previous,
+            httpBaseUrl: widget.httpBaseUrl,
+            onRetryMessage: widget.onRetryMessage,
+            onRewindMessage: widget.onRewindMessage,
+            onForkMessage: onForkMessage,
+            collapseToolResults: widget.collapseToolResults,
+            resolvedPlanText: _resolvePlanText(entry),
+            hiddenToolUseIds: hiddenToolUseIds,
+            onFileTap: (filePath) {
+              final projectPath = widget.projectPath;
+              if (projectPath == null || projectPath.isEmpty) return;
+              openFilePeek(
+                context,
+                bridge: context.read<BridgeService>(),
+                projectPath: projectPath,
+                filePath: filePath,
+                projectFiles: context.read<FileListCubit>().state,
+                onResolvedFilePath: widget.onFilePeekOpened,
+              );
+            },
+            onImageTap: (user) {
+              final claudeSessionId = context
+                  .read<ChatSessionCubit>()
+                  .state
+                  .claudeSessionId;
+              final httpBaseUrl = widget.httpBaseUrl;
+              if (claudeSessionId == null ||
+                  claudeSessionId.isEmpty ||
+                  httpBaseUrl == null) {
+                return;
+              }
+              Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => MessageImagesScreen(
+                    bridge: context.read<BridgeService>(),
+                    httpBaseUrl: httpBaseUrl,
+                    claudeSessionId: claudeSessionId,
+                    messageUuid: user.messageUuid!,
+                    imageCount: user.imageCount,
+                  ),
+                ),
+              );
+            },
+            isCodex: widget.isCodex,
+          );
+          // Wrap with AutoScrollTag for scroll-to-index support.
+          // Use entryIndex (not reverse index) as the AutoScrollTag index.
+          child = AutoScrollTag(
+            key: ValueKey(_entryKey(entry, entryIndex)),
+            controller: widget.scrollController,
+            index: entryIndex,
+            child: child,
+          );
+          return child;
+        },
       ),
     );
   }
