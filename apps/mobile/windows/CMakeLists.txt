@@ -55,6 +55,9 @@ add_subdirectory("runner")
 
 # Generated plugin build rules, which manage building the plugins and adding
 # them to the application.
+# Some third-party plugins vend old CMake projects. In CMake 4+, those can fail
+# during add_subdirectory() if they declare a policy version older than 3.5.
+set(CMAKE_POLICY_VERSION_MINIMUM 3.5)
 include(flutter/generated_plugins.cmake)
 
 
