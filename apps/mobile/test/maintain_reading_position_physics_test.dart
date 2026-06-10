@@ -49,6 +49,21 @@ void main() {
 
       expect(adjusted, 240);
     });
+
+    test('does not adjust while the user is scrolling', () {
+      final physics = MaintainReadingPositionPhysics(
+        shouldMaintain: () => true,
+      );
+
+      final adjusted = physics.adjustPositionForNewDimensions(
+        oldPosition: _metrics(pixels: 240, maxScrollExtent: 1000),
+        newPosition: _metrics(pixels: 240, maxScrollExtent: 1120),
+        isScrolling: true,
+        velocity: 0,
+      );
+
+      expect(adjusted, 240);
+    });
   });
 }
 

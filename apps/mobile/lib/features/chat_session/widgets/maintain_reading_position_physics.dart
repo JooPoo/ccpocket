@@ -61,6 +61,7 @@ class MaintainReadingPositionPhysics extends ScrollPhysics {
       velocity: velocity,
     );
 
+    if (isScrolling) return adjusted;
     if (!shouldMaintain()) return adjusted;
 
     // Near the bottom we want the list to keep following new output.
